@@ -1,13 +1,24 @@
 const Database = require('better-sqlite3');
 const path = require('path');
+const fs = require('fs');
 const bcrypt = require('bcryptjs');
 
-const dbPath = path.join(__dirname, '..', 'mess_management.db');
+let dbPath = path.join(__dirname, '..', 'mess_management.db');
+
+// Support serverless hosting (e.g. Vercel / AWS Lambda where /var/task is read-only)
+if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+  const tmpPath = path.join('/tmp', 'mess_management.db');
+  if (!fs.existsSync(tmpPath) && fs.existsSync(dbPath)) {
+    try { fs.copyFileSync(dbPath, tmpPath); } catch (e) {}
+  }
+  dbPath = tmpPath;
+}
+
 const db = new Database(dbPath);
 
-// Enable foreign keys and WAL mode for better concurrency
-db.pragma('foreign_keys = ON');
-db.pragma('journal_mode = WAL');
+// Enable foreign keys and WAL mode for concurrency
+try { db.pragma('foreign_keys = ON'); } catch(e) {}
+try { db.pragma('journal_mode = WAL'); } catch(e) {}
 
 function initSchema() {
   db.exec(`
