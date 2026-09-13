@@ -157,50 +157,120 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// Login
+// Check account approval status by email or mobile number (for live student polling)
+router.get('/check-status', (req, res) => {
+  try {
+    const rawIdentifier = (req.query.identifier || '').trim();
+    if (!rawIdentifier) {
+      return res.status(400).json({ success: false, message: 'Email or mobile number is required.' });
+    }
+
+    const cleanPhone = normalizePhone(rawIdentifier);
+    let user = null;
+    if (cleanPhone && cleanPhone.length === 10) {
+      user = db.prepare(`
+        SELECT id, name, email, phone, role, status
+        FROM users
+        WHERE LOWER(email) = LOWER(?) OR phone LIKE ? OR phone LIKE ?
+      `).get(rawIdentifier, `%${cleanPhone}%`, cleanPhone);
+    } else {
+      user = db.prepare(`
+        SELECT id, name, email, phone, role, status
+        FROM users
+        WHERE LOWER(email) = LOWER(?)
+      `).get(rawIdentifier);
+    }
+
+    if (!user) {
+      return res.json({ success: true, exists: false, status: 'not_found', message: 'Account not found.' });
+    }
+
+    const st = (user.status || '').toLowerCase();
+    const isApproved = st === 'active' || st === 'approved';
+
+    return res.json({
+      success: true,
+      exists: true,
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      status: st,
+      isApproved,
+      message: isApproved
+        ? `Account approved! You can now log in as ${user.name}.`
+        : (st === 'pending' ? 'Your account is waiting for Mess Manager approval.' : `Account status: ${st}`)
+    });
+  } catch (err) {
+    console.error('Check status error:', err);
+    return res.status(500).json({ success: false, message: 'Server error checking status.' });
+  }
+});
+
+// Login (Supports Email OR Mobile Number)
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ success: false, message: 'Email and password are required.' });
+      return res.status(400).json({ success: false, message: 'Email/mobile number and password are required.' });
     }
 
-    const trimmedEmail = email.trim().toLowerCase();
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(trimmedEmail);
+    const rawIdentifier = email.trim();
+    const cleanPhone = normalizePhone(rawIdentifier);
+
+    let user = null;
+    if (cleanPhone && cleanPhone.length === 10) {
+      user = db.prepare(`
+        SELECT * FROM users
+        WHERE LOWER(email) = LOWER(?) OR phone LIKE ? OR phone LIKE ?
+      `).get(rawIdentifier, `%${cleanPhone}%`, cleanPhone);
+    } else {
+      user = db.prepare(`
+        SELECT * FROM users
+        WHERE LOWER(email) = LOWER(?)
+      `).get(rawIdentifier);
+    }
 
     if (!user) {
-      return res.status(401).json({ success: false, message: 'Incorrect email or password. Please check your credentials.' });
+      return res.status(401).json({ success: false, message: 'Incorrect email/mobile number or password. Please check your credentials.' });
     }
 
-    const isMatch = bcrypt.compareSync(password, user.password_hash);
-    if (!isMatch) {
-      return res.status(401).json({ success: false, message: 'Incorrect email or password. Please check your credentials.' });
+    let isMatch = bcrypt.compareSync(password, user.password_hash);
+    if (!isMatch && password.trim() !== password) {
+      // Fallback for mobile keyboard autofill space
+      isMatch = bcrypt.compareSync(password.trim(), user.password_hash);
     }
+
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Incorrect email/mobile number or password. Please check your credentials.' });
+    }
+
+    const userStatus = (user.status || '').toLowerCase();
 
     // Role-based approval status check
     if (user.role === 'admin') {
-      if (user.status !== 'active') {
+      if (userStatus !== 'active' && userStatus !== 'approved') {
         return res.status(403).json({
           success: false,
           message: 'This administrator account has been deactivated. Please contact the Mess Owner.'
         });
       }
     } else if (user.role === 'user') {
-      if (user.status === 'pending') {
+      if (userStatus === 'pending') {
         return res.status(403).json({
           success: false,
           isPending: true,
+          email: user.email,
           message: 'Your account is pending approval by the Mess Manager. Please wait for the admin to approve your account before logging in.'
         });
       }
-      if (user.status === 'rejected') {
+      if (userStatus === 'rejected') {
         return res.status(403).json({
           success: false,
           message: 'Your registration was rejected by the Mess Manager. Please contact administration.'
         });
       }
-      if (user.status !== 'active') {
+      if (userStatus !== 'active' && userStatus !== 'approved') {
         return res.status(403).json({
           success: false,
           message: 'Your account is currently inactive. Please contact the Mess Manager.'

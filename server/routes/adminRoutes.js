@@ -127,7 +127,11 @@ router.post('/users/:id/approve', (req, res) => {
     db.prepare("UPDATE users SET status = 'active' WHERE id = ?").run(userId);
 
     const currentMonthStr = new Date().toISOString().slice(0, 7);
-    recalculateAllBills(currentMonthStr);
+    try {
+      recalculateAllBills(currentMonthStr);
+    } catch (calcErr) {
+      console.error('Recalculate bills warning on approve:', calcErr);
+    }
 
     logAudit(
       req.user.id,

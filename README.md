@@ -69,15 +69,17 @@ The server will start at **http://localhost:3000**.
 
 ## 🌐 Deployment Guide (Uploading Online)
 
-### Option A: Render.com (Free & Recommended)
-1. Push this folder to a GitHub repository (or upload via Git).
-2. Go to [Render.com](https://render.com) and create a **Web Service**.
-3. Connect your GitHub repository.
-4. Set:
+### Option A: Render.com (100% Free & Highly Recommended)
+> **Why Render?** Express with SQLite (`mess_management.db`) requires a persistent Node.js process so that all student registrations and manager approvals are saved in real-time. On serverless platforms like Vercel, serverless function instances have isolated temporary filesystems in `/tmp`, which causes data sync delays. Render runs a persistent 24/7 web service with 0 database loss.
+
+1. Push this code to your GitHub repo (`git push origin main`).
+2. Log in to [Render.com](https://render.com) (free) and click **New + > Web Service**.
+3. Select your repository `Mess-Management`.
+4. Render will automatically detect `render.yaml`:
    - **Environment**: `Node`
    - **Build Command**: `npm install`
    - **Start Command**: `node server.js`
-5. Click **Deploy**. Your mess management portal will be live with free HTTPS.
+5. Click **Create Web Service**. Within 2 minutes, your website is live with instant notifications and persistent approvals!
 
 ### Option B: Railway.app / Koyeb / Fly.io
 1. Connect your repository.
