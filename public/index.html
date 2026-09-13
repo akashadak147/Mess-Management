@@ -1,0 +1,2041 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mess Mate - Mess Food Management & Public Dues Portal</title>
+  <meta name="description"
+    content="Mess Mate: Complete mess food management platform for meal attendance, automated billing, 5th-day mess fee, 7th-day maid fee, UPI payment proof verification, and community transparency.">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+
+  <!-- App Header & Navigation -->
+  <header class="app-navbar">
+    <div class="navbar-container">
+      <div class="brand-wrapper" id="brand-home-btn">
+        <div class="brand-logo-icon">🍛</div>
+        <div class="brand-titles">
+          <h1>MessMitra <span class="brand-badge" id="portal-mode-badge">Smart Cloud</span></h1>
+          <p class="brand-sub" id="mess-name-display">Mess Management Software & Student Portal</p>
+        </div>
+      </div>
+
+      <!-- Main Navigation Tabs -->
+      <ul class="nav-links" id="main-nav-links">
+        <!-- Injected dynamically based on role/auth -->
+      </ul>
+
+      <!-- Navbar Controls -->
+      <div class="nav-controls">
+        <div id="unauth-nav-btns" style="display: flex; gap: 0.5rem; align-items: center;">
+          <button class="btn btn-outline btn-sm" id="nav-student-quick-btn">🎓 Student Login</button>
+          <button class="btn btn-primary btn-sm" id="nav-manager-quick-btn">👑 Admin Login</button>
+        </div>
+        <button class="theme-toggle-btn" id="theme-toggle-btn" title="Toggle Dark/Light Mode">
+          <span id="theme-icon">🌙</span>
+        </button>
+
+        <!-- User Profile Pill (Visible when logged in) -->
+        <div class="user-pill" id="user-profile-pill" style="display: none;">
+          <div class="user-avatar" id="nav-user-avatar">U</div>
+          <div class="user-info">
+            <span class="user-name" id="nav-user-name">User</span>
+            <span class="user-role-tag" id="nav-user-role">Student</span>
+          </div>
+          <button class="btn-icon" id="logout-btn" title="Logout" style="margin-left: 0.35rem;">
+            🚪
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="main-wrapper">
+
+    <!-- Announcement Banner -->
+    <section class="announcement-banner" id="announcement-banner">
+      <div class="announcement-content">
+        <span class="announcement-icon">📢</span>
+        <span id="announcement-text">Welcome to Mess Mate! ₹700 monthly mess payment must be paid by the 5th of every month. Maid payment ₹400 by the 7th.</span>
+      </div>
+      <div style="font-size: 0.8rem; color: var(--text-secondary); white-space: nowrap;" id="current-date-time-display">
+        Today: Loading...
+      </div>
+    </section>
+
+    <!-- =========================================================================
+         VIEW 1: DIRECT AUTHENTICATION (Student Login / Admin Login / Sign Up)
+         ========================================================================= -->
+    <section id="view-auth" class="auth-wrapper" style="max-width: 500px; margin: 2.5rem auto; padding: 0 1rem 3rem;">
+
+      <!-- Clean Focused Dual Login Card -->
+      <div class="glass-panel auth-card" style="padding: 2.2rem; border-radius: var(--radius-lg); box-shadow: 0 16px 45px rgba(0, 0, 0, 0.45); border: 1px solid var(--border-glass-hover);">
+
+        <!-- Auth Tabs (Student vs Admin vs Register) -->
+        <div class="auth-tabs" style="margin-bottom: 1.5rem;">
+          <button class="auth-tab-btn active" id="tab-login-btn">🎓 Student Login</button>
+          <button class="auth-tab-btn" id="tab-admin-login-btn">👑 Admin Login</button>
+          <button class="auth-tab-btn" id="tab-register-btn">📝 Sign Up</button>
+        </div>
+
+        <!-- Dynamic Portal Header -->
+        <div id="auth-portal-header" style="text-align: center; margin-bottom: 1.5rem;">
+          <div style="font-size: 2.5rem; margin-bottom: 0.35rem;" id="auth-header-icon">🎓</div>
+          <h2 style="font-size: 1.4rem; color: var(--text-primary); margin: 0 0 0.35rem;" id="auth-header-title">Student Portal Login</h2>
+          <p style="font-size: 0.84rem; color: var(--text-secondary); margin: 0; line-height: 1.4;" id="auth-header-desc">
+            Sign in to mark meal attendance, check your monthly dues, and view market duty.
+          </p>
+        </div>
+
+        <!-- Sign In Form -->
+        <form id="login-form">
+          <!-- Login Error Alert Banner -->
+          <div id="login-error-alert" class="auth-error-box" style="display: none;" role="alert">
+            <span style="font-size: 1.25rem; line-height: 1;" id="login-error-icon">⚠️</span>
+            <div style="flex: 1;">
+              <strong style="display: block; font-weight: 700; margin-bottom: 2px;" id="login-error-heading">Incorrect Details</strong>
+              <span id="login-error-text">Incorrect email or password. Please check your credentials and try again.</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="login-email" id="login-email-label">Email Address</label>
+            <input type="email" id="login-email" class="form-control" placeholder="Enter your email" required autocomplete="username">
+          </div>
+          <div class="form-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+              <label class="form-label" for="login-password" style="margin-bottom: 0;">Password</label>
+              <a href="javascript:void(0)" id="forgot-password-link" style="font-size: 0.8rem; color: var(--primary); font-weight: 600; text-decoration: none;">Forgot Password?</a>
+            </div>
+            <input type="password" id="login-password" class="form-control" placeholder="••••••••" required autocomplete="current-password">
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem; padding: 0.75rem; font-size: 0.95rem; font-weight: 700;"
+            id="login-submit-btn">
+            Sign In as Student
+          </button>
+          <div style="text-align: center; margin-top: 1.15rem; font-size: 0.82rem; color: var(--text-secondary);" id="login-switch-footer">
+            New mess student? <a href="javascript:void(0)" id="switch-to-register-link" style="color: var(--primary); font-weight: 600; text-decoration: none;">Create an account</a>
+          </div>
+        </form>
+
+        <!-- Register Form -->
+        <form id="register-form" style="display: none;">
+          <div
+            style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: var(--radius-md); padding: 0.65rem 0.85rem; margin-bottom: 1rem; font-size: 0.78rem; color: #fbbf24; line-height: 1.4;">
+            🔒 <strong>Mess Security Approval:</strong> Once you register, the Mess Manager (Admin) must approve your
+            student profile before you can sign in with your email and password.
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="reg-name">Full Name</label>
+            <input type="text" id="reg-name" class="form-control" placeholder="e.g. Sourav Mukherjee" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="reg-email">Email Address</label>
+            <input type="email" id="reg-email" class="form-control" placeholder="e.g. sourav@mess.com" required>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="reg-room">Room / Bed No</label>
+            <input type="text" id="reg-room" class="form-control" placeholder="e.g. Room 204">
+          </div>
+
+          <!-- Mobile Number (No OTP required) -->
+          <div class="form-group">
+            <label class="form-label" for="reg-phone">Mobile Number</label>
+            <input type="tel" id="reg-phone" class="form-control" placeholder="10-digit mobile (e.g. 9876543210)" maxlength="10" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="reg-password">Create Password</label>
+            <input type="password" id="reg-password" class="form-control" placeholder="Min 6 characters" required>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem; padding: 0.75rem; font-size: 0.95rem; font-weight: 700;"
+            id="register-submit-btn">
+            Register as Student
+          </button>
+          <div style="text-align: center; margin-top: 1.15rem; font-size: 0.82rem; color: var(--text-secondary);">
+            Already have an account? <a href="javascript:void(0)" id="switch-to-login-link" style="color: var(--primary); font-weight: 600; text-decoration: none;">Back to Student Login</a>
+          </div>
+        </form>
+
+      </div>
+
+    </section>
+
+    <!-- =========================================================================
+         FORGOT PASSWORD MODAL: REQUEST NEW PASSWORD TO ADMIN
+         ========================================================================= -->
+    <div id="forgot-password-modal" class="modal-backdrop" style="display: none;">
+      <div class="modal-card" style="padding: 2.2rem; max-width: 480px;">
+        <!-- Close Button -->
+        <button type="button" id="forgot-modal-close-btn" style="position: absolute; top: 1.25rem; right: 1.25rem; background: transparent; border: none; font-size: 1.25rem; color: var(--text-muted); cursor: pointer; line-height: 1;">✕</button>
+
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+          <div style="font-size: 2.4rem; margin-bottom: 0.25rem;">🔑</div>
+          <h3 style="font-size: 1.3rem; margin: 0 0 0.35rem; color: var(--text-primary);">Forgot Password?</h3>
+          <p style="font-size: 0.84rem; color: var(--text-secondary); margin: 0; line-height: 1.4;">
+            Send a password reset request directly to the Mess Manager. Admin will review and assign your new password.
+          </p>
+        </div>
+
+        <!-- Alert Banner inside modal -->
+        <div id="forgot-error-alert" class="auth-error-box" style="display: none;" role="alert">
+          <span style="font-size: 1.1rem; line-height: 1;" id="forgot-error-icon">⚠️</span>
+          <div style="flex: 1;">
+            <span id="forgot-error-text" style="font-size: 0.82rem;">Error details here</span>
+          </div>
+        </div>
+
+        <!-- Request Form -->
+        <form id="forgot-request-form">
+          <div class="form-group">
+            <label class="form-label" for="forgot-identifier-input">Registered Email or Mobile Number</label>
+            <input type="text" id="forgot-identifier-input" class="form-control" placeholder="e.g. student@mess.com or 9876543210" required>
+            <p style="font-size: 0.76rem; color: var(--text-muted); margin: 0.35rem 0 0 0;">
+              Enter the email address or mobile number linked to your Mess student account.
+            </p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="forgot-note-input">Note to Admin (Optional)</label>
+            <textarea id="forgot-note-input" class="form-control" rows="2" placeholder="e.g. I forgot my login password, please set a new one for me."></textarea>
+          </div>
+
+          <button type="submit" id="forgot-request-submit-btn" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-weight: 700; font-size: 0.95rem; margin-top: 0.5rem;">
+            📩 Send Reset Request to Admin
+          </button>
+        </form>
+
+        <!-- Request Success Screen -->
+        <div id="forgot-success-view" style="display: none; text-align: center; padding: 0.75rem 0;">
+          <div style="font-size: 3rem; margin-bottom: 0.5rem;">📨</div>
+          <h4 style="color: #10b981; margin: 0 0 0.5rem; font-size: 1.15rem;">Request Sent to Mess Admin!</h4>
+          <p id="forgot-success-desc" style="font-size: 0.84rem; color: var(--text-secondary); margin: 0 0 1.25rem; line-height: 1.4;">
+            Your password reset request has been received by the Mess Manager. Please contact your manager to collect your new password.
+          </p>
+          <button type="button" id="forgot-done-btn" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-weight: 700;">
+            Back to Student Login
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- =========================================================================
+         VIEW 2: USER / STUDENT DASHBOARD
+         ========================================================================= -->
+    <section id="view-user" style="display: none;">
+
+      <!-- Today's Market Duty & Food Routine Banner -->
+      <div class="glass-panel"
+        style="padding: 1.1rem 1.35rem; margin-bottom: 1.5rem; background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(16, 185, 129, 0.08)); border: 1px solid rgba(245, 158, 11, 0.28); border-radius: var(--radius-lg);">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+          <div style="display: flex; align-items: center; gap: 0.9rem;">
+            <div
+              style="font-size: 2rem; background: rgba(245, 158, 11, 0.15); width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-md);">
+              🛒</div>
+            <div>
+              <div
+                style="font-size: 0.75rem; color: #fbbf24; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">
+                Today's Assigned Market Duty (<span id="user-today-day-name">Today</span>)</div>
+              <h3 style="font-size: 1.15rem; color: var(--text-primary); margin: 0.15rem 0;" id="user-today-duty-team">
+                Loading market duty...</h3>
+              <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;">These students are responsible for
+                fresh groceries and kitchen supplies today.</p>
+            </div>
+          </div>
+          <div
+            style="display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap; background: rgba(0,0,0,0.22); padding: 0.6rem 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-glass);">
+            <div>
+              <span style="font-size: 0.72rem; color: var(--accent); font-weight: 700;">☀️ MORNING DISH:</span>
+              <div style="font-size: 0.88rem; font-weight: 600;" id="user-today-morning-dish">Loading...</div>
+            </div>
+            <div style="border-left: 1px solid var(--border-glass); padding-left: 1.5rem;">
+              <span style="font-size: 0.72rem; color: var(--purple); font-weight: 700;">🌙 NIGHT DISH:</span>
+              <div style="font-size: 0.88rem; font-weight: 600;" id="user-today-night-dish">Loading...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- User Overview Stat Cards -->
+      <div class="stat-grid">
+        <div class="glass-panel stat-card" style="--stat-glow: var(--primary-glow);">
+          <div class="stat-header">
+            <span class="stat-title">Current Month Meals</span>
+            <div class="stat-icon" style="color: var(--primary);">🍽️</div>
+          </div>
+          <div class="stat-value" id="user-stat-meals">0</div>
+          <div class="stat-subtext" id="user-stat-meal-rate">Morning & Night Attendance</div>
+        </div>
+
+        <div class="glass-panel stat-card" style="--stat-glow: var(--accent-glow);">
+          <div class="stat-header">
+            <span class="stat-title">Monthly Base Fee</span>
+            <div class="stat-icon" style="color: var(--accent);">📅</div>
+          </div>
+          <div class="stat-value" id="user-stat-monthly-fee">₹700</div>
+          <div class="stat-subtext">Due by 5th of month</div>
+        </div>
+
+        <div class="glass-panel stat-card" style="--stat-glow: var(--accent-glow);">
+          <div class="stat-header">
+            <span class="stat-title">Rannar Masi (Cook)</span>
+            <div class="stat-icon" style="color: var(--accent);">👩‍🍳</div>
+          </div>
+          <div class="stat-value" id="user-stat-masi">₹400</div>
+          <div class="stat-subtext" id="user-stat-masi-status">Due by 7th of month</div>
+        </div>
+
+        <div class="glass-panel stat-card" style="--stat-glow: var(--danger-glow);">
+          <div class="stat-header">
+            <span class="stat-title">Previous Month Due</span>
+            <div class="stat-icon" style="color: var(--danger);">⏳</div>
+          </div>
+          <div class="stat-value" id="user-stat-prev-due">₹0</div>
+          <div class="stat-subtext">Carried forward balance</div>
+        </div>
+
+        <div class="glass-panel stat-card" style="--stat-glow: var(--primary-glow);">
+          <div class="stat-header">
+            <span class="stat-title">Total Due Balance</span>
+            <div class="stat-icon" style="color: #34d399;">💳</div>
+          </div>
+          <div class="stat-value" id="user-stat-total-due" style="color: #f87171;">₹0</div>
+          <div class="stat-subtext" id="user-stat-bill-status">Status: Pending</div>
+        </div>
+      </div>
+
+      <!-- Main Action & Information Split -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+
+        <!-- Left: Today's Meal Response Card -->
+        <div class="glass-panel" style="padding: 1.5rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem;">
+            <div>
+              <h3>Today's Meal Attendance</h3>
+              <p style="font-size: 0.85rem; color: var(--text-secondary);">
+                Mark whether you will eat breakfast and/or dinner today so the cook prepares exact portions.
+              </p>
+            </div>
+            <span class="badge-tag" id="today-date-badge">Today</span>
+          </div>
+
+          <!-- Default Eating Rule Info Banner -->
+          <div style="background: rgba(14, 165, 233, 0.1); border: 1px solid rgba(14, 165, 233, 0.25); border-radius: var(--radius-sm); padding: 0.6rem 0.8rem; margin-bottom: 1rem; font-size: 0.78rem; color: #7dd3fc; display: flex; align-items: flex-start; gap: 0.5rem; line-height: 1.4;">
+            <span style="font-size: 0.95rem;">ℹ️</span>
+            <div>
+              <strong>Default "Eating" Rule:</strong> If you don't mark attendance, you are automatically counted as <strong>Eating</strong>. If you will skip or stay out, switch the toggle to <strong>Not Eating</strong> and save.
+            </div>
+          </div>
+
+          <!-- Morning Meal Switch -->
+          <div class="meal-toggle-box" style="margin-bottom: 1rem;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <span style="font-size: 1.25rem;">☀️</span>
+                <span class="meal-toggle-label">Breakfast & Lunch (সকাল ও দুপুর)</span>
+                <span id="morning-status-badge" class="badge-tag badge-eating-default" style="font-size: 0.7rem; padding: 0.15rem 0.45rem;">🍽️ Eating (Default)</span>
+              </div>
+              <p style="font-size: 0.76rem; color: var(--text-secondary); margin-top: 0.25rem;" id="morning-status-sub">
+                Status: Scheduled to Eat
+              </p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="toggle-morning" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- Night Meal Switch -->
+          <div class="meal-toggle-box" style="margin-bottom: 1.25rem;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <span style="font-size: 1.25rem;">🌙</span>
+                <span class="meal-toggle-label">Dinner (রাতের খাবার)</span>
+                <span id="night-status-badge" class="badge-tag badge-eating-default" style="font-size: 0.7rem; padding: 0.15rem 0.45rem;">🍽️ Eating (Default)</span>
+              </div>
+              <p style="font-size: 0.76rem; color: var(--text-secondary); margin-top: 0.25rem;" id="night-status-sub">
+                Status: Scheduled to Eat
+              </p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="toggle-night" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- Quick Actions: Eat Both / Skip Both -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.85rem;">
+            <button type="button" class="btn btn-outline btn-sm" id="btn-quick-eating-all" style="font-size: 0.76rem; padding: 0.4rem 0.5rem;">
+              🍽️ Mark Both Eating
+            </button>
+            <button type="button" class="btn btn-outline btn-sm" id="btn-quick-skip-all" style="font-size: 0.76rem; padding: 0.4rem 0.5rem; color: #f87171; border-color: rgba(239, 68, 68, 0.35);">
+              ❌ Mark Both Not Eating
+            </button>
+          </div>
+
+          <button class="btn btn-primary" id="save-meal-response-btn" style="width: 100%;">
+            💾 Save Today's Response
+          </button>
+        </div>
+
+        <!-- Right: Current Month Financial Due & Pay Now -->
+        <div class="glass-panel" style="padding: 1.5rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+            <h3>Current Monthly Invoice Breakdown</h3>
+            <span class="status-pill status-pending" id="user-invoice-badge">PENDING</span>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 0.85rem; font-size: 0.9rem;">
+            <!-- 1. Monthly Mess Payment (₹700, Due 5th) -->
+            <div
+              style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border-glass); padding-bottom: 0.5rem; background: rgba(16, 185, 129, 0.06); padding: 0.5rem; border-radius: var(--radius-sm);">
+              <div>
+                <span style="color: var(--text-primary); font-weight: 700;">🍲 Monthly Mess Food Payment:</span>
+                <div style="font-size: 0.74rem; color: #34d399;">⚠️ Must pay by 5th of every month</div>
+              </div>
+              <strong id="inv-monthly-fee" style="color: var(--primary); font-size: 1.05rem;">₹700</strong>
+            </div>
+
+            <!-- 2. Maid Payment (₹400, Due 7th) -->
+            <div
+              style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border-glass); padding-bottom: 0.5rem; background: rgba(245, 158, 11, 0.06); padding: 0.5rem; border-radius: var(--radius-sm);">
+              <div>
+                <span style="color: var(--text-primary); font-weight: 700;">👩‍🍳 Maid (Rannar Masi) Monthly Fee:</span>
+                <div style="font-size: 0.74rem; color: #fbbf24;">⚠️ Must pay by 7th of every month</div>
+              </div>
+              <div style="text-align: right;">
+                <strong id="inv-masi-fee" style="color: #fbbf24; font-size: 1.05rem;">₹400</strong>
+                <div style="font-size: 0.72rem; color: var(--text-muted);" id="inv-masi-substatus">Unpaid</div>
+              </div>
+            </div>
+
+            <!-- 3. Previous Month Due -->
+            <div
+              style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border-glass); padding-bottom: 0.5rem;">
+              <div>
+                <span style="color: var(--text-secondary);">⏳ Previous Month Pending Dues:</span>
+                <div style="font-size: 0.72rem; color: var(--text-muted);">Carried forward balance</div>
+              </div>
+              <strong id="inv-prev-due" style="color: #f87171;">₹0</strong>
+            </div>
+
+            <!-- 4. Late Fine -->
+            <div
+              style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border-glass); padding-bottom: 0.5rem;">
+              <div>
+                <span style="color: var(--text-secondary);">Late Payment Fine:</span>
+                <div style="font-size: 0.72rem; color: #f87171;">₹100 fine if unpaid after 5th of month</div>
+              </div>
+              <strong id="inv-late-fine" style="color: #f87171;">₹0</strong>
+            </div>
+
+            <!-- 5. Total Payable -->
+            <div
+              style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-glass-hover); padding-bottom: 0.5rem; font-size: 1rem;">
+              <span>Total Bill Payable:</span>
+              <strong id="inv-total-payable" style="color: var(--text-primary); font-size: 1.15rem;">₹0</strong>
+            </div>
+
+            <!-- 6. Payments Approved -->
+            <div style="display: flex; justify-content: space-between; color: var(--primary);">
+              <span>Approved Payments:</span>
+              <strong id="inv-paid-amount">- ₹0</strong>
+            </div>
+
+            <!-- 7. Remaining Due Balance -->
+            <div
+              style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: rgba(255, 255, 255, 0.04); border-radius: var(--radius-md); margin-top: 0.35rem;">
+              <span style="font-weight: 700;">Remaining Balance Due:</span>
+              <span style="font-size: 1.35rem; font-weight: 800; color: #f87171;" id="inv-due-balance">₹0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Direct UPI Payment Hub & Auto-Calculator -->
+        <div class="glass-panel" style="padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <div style="font-size: 1.5rem;">⚡</div>
+                <div>
+                  <h4 style="color: var(--primary); font-size: 1.1rem; margin: 0;">Direct UPI Payment & Calculator</h4>
+                  <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.15rem;">
+                    Payee: <strong>Bhabani Prasad Ghosh</strong> (<code>8927971674@fam</code>)
+                  </p>
+                </div>
+              </div>
+              <span class="badge-tag" style="background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3);">
+                ⚡ Instant UPI Intent
+              </span>
+            </div>
+
+            <!-- Quick Payment Option Selector -->
+            <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 0.35rem;">
+              Select What You Want to Pay:
+            </div>
+            <div class="upi-amount-pill-row" id="dash-upi-amount-pills" style="margin-bottom: 0.75rem;">
+              <button type="button" class="upi-amount-pill active" data-amount="1100" id="pill-both-1100">
+                ⚡ ₹1,100 (Mess + Maid)
+              </button>
+              <button type="button" class="upi-amount-pill" data-amount="700" id="pill-mess-700">
+                🍲 ₹700 (Mess Only • Due 5th)
+              </button>
+              <button type="button" class="upi-amount-pill" data-amount="400" id="pill-maid-400">
+                👩‍🍳 ₹400 (Maid Only • Due 7th)
+              </button>
+              <button type="button" class="upi-amount-pill" data-amount="prev" id="pill-prev-due" style="display: none;">
+                ⏳ Previous Due
+              </button>
+              <button type="button" class="upi-amount-pill" data-amount="due" id="dash-fill-due-pill">
+                🌟 Full Total Due
+              </button>
+            </div>
+
+            <!-- Interactive Itemized Combination Checklist -->
+            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-glass); border-radius: var(--radius-sm); padding: 0.75rem 0.85rem; margin-bottom: 0.85rem;">
+              <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                Or Customize Payment Combination:
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.82rem;">
+                <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
+                  <span style="display: flex; align-items: center; gap: 0.45rem;">
+                    <input type="checkbox" id="calc-check-mess" checked>
+                    <span>🍲 Monthly Mess Fee (Due by 5th)</span>
+                  </span>
+                  <strong style="color: var(--primary);">₹700</strong>
+                </label>
+                <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
+                  <span style="display: flex; align-items: center; gap: 0.45rem;">
+                    <input type="checkbox" id="calc-check-maid" checked>
+                    <span>👩‍🍳 Maid (Rannar Masi) Fee (Due by 7th)</span>
+                  </span>
+                  <strong style="color: #fbbf24;">₹400</strong>
+                </label>
+                <label id="calc-wrap-prev-due" style="display: none; align-items: center; justify-content: space-between; cursor: pointer;">
+                  <span style="display: flex; align-items: center; gap: 0.45rem;">
+                    <input type="checkbox" id="calc-check-prev-due">
+                    <span>⏳ Previous Month Pending Due</span>
+                  </span>
+                  <strong style="color: #f87171;" id="calc-prev-due-amount">₹0</strong>
+                </label>
+                <label id="calc-wrap-fine" style="display: none; align-items: center; justify-content: space-between; cursor: pointer;">
+                  <span style="display: flex; align-items: center; gap: 0.45rem;">
+                    <input type="checkbox" id="calc-check-fine">
+                    <span>⚠️ Late Fine (Past 5th)</span>
+                  </span>
+                  <strong style="color: #f87171;" id="calc-fine-amount">₹100</strong>
+                </label>
+              </div>
+
+              <!-- Calculated Total Bar -->
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 0.65rem; padding-top: 0.55rem; border-top: 1px dashed rgba(255, 255, 255, 0.1); font-size: 0.9rem;">
+                <span>Total Calculated to Pay:</span>
+                <span style="font-size: 1.25rem; font-weight: 800; color: #34d399;" id="calc-total-display">₹1,100</span>
+              </div>
+            </div>
+
+            <!-- Big Pay via Any UPI Button -->
+            <button type="button" class="btn btn-primary" id="btn-pay-any-upi"
+              style="width: 100%; font-size: 1.02rem; font-weight: 800; padding: 0.85rem; border-radius: var(--radius-md); box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4); margin-bottom: 0.75rem;">
+              ⚡ Pay <span id="btn-pay-amount-label">₹1,100</span> via Any UPI App
+            </button>
+
+            <!-- Direct UPI App Options Grid -->
+            <div style="font-size: 0.76rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.35rem;">
+              Or Open in Specific UPI Application:
+            </div>
+            <div class="upi-app-grid" style="margin-top: 0.2rem; margin-bottom: 0.65rem;">
+              <button type="button" class="upi-app-btn gpay" id="dash-pay-gpay-btn" title="Pay with Google Pay">
+                <span class="upi-app-icon">🟢</span>
+                <span class="upi-app-title">Google Pay</span>
+                <span class="upi-app-sub">Open GPay</span>
+              </button>
+              <button type="button" class="upi-app-btn phonepe" id="dash-pay-phonepe-btn" title="Pay with PhonePe">
+                <span class="upi-app-icon">🟣</span>
+                <span class="upi-app-title">PhonePe</span>
+                <span class="upi-app-sub">Open PhonePe</span>
+              </button>
+              <button type="button" class="upi-app-btn paytm" id="dash-pay-paytm-btn" title="Pay with Paytm">
+                <span class="upi-app-icon">🔵</span>
+                <span class="upi-app-title">Paytm</span>
+                <span class="upi-app-sub">Open Paytm</span>
+              </button>
+              <button type="button" class="upi-app-btn bhim" id="dash-pay-bhim-btn" title="Pay with BHIM UPI">
+                <span class="upi-app-icon">🟠</span>
+                <span class="upi-app-title">BHIM UPI</span>
+                <span class="upi-app-sub">Open BHIM</span>
+              </button>
+            </div>
+
+            <!-- Due Rules Info Callout -->
+            <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: var(--radius-sm); padding: 0.45rem 0.65rem; font-size: 0.72rem; color: #fbbf24; line-height: 1.4;">
+              📌 <strong>Due Deadlines:</strong> ₹700 Mess Fee by <strong>5th</strong> • ₹400 Maid Fee by <strong>7th</strong>. Once paid, upload screenshot proof below!
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 0.85rem;">
+            <button class="btn btn-outline" id="dash-view-qr-btn">
+              📷 View Dynamic QR
+            </button>
+            <button class="btn btn-primary" id="open-pay-modal-btn">
+              📤 Upload Screenshot Proof
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Payment Submissions History for Member -->
+      <div class="glass-panel" style="padding: 1.5rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+          <h3>My Payment Verification Submissions</h3>
+          <button class="btn btn-outline btn-sm" id="refresh-user-payments-btn">🔄 Refresh</button>
+        </div>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Month</th>
+                <th>Amount (₹)</th>
+                <th>UTR / Txn ID</th>
+                <th>Screenshot Proof</th>
+                <th>Status</th>
+                <th>Manager Note</th>
+              </tr>
+            </thead>
+            <tbody id="user-payment-history-tbody">
+              <tr>
+                <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                  No payment submissions found yet. Click 'Pay Bill & Upload Proof' to submit your first receipt.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- =========================================================================
+         VIEW 3: COMMUNITY TRANSPARENCY BOARD (Mess Manager / Admin Exclusive)
+         ========================================================================= -->
+    <section id="view-transparency" style="display: none;">
+
+      <!-- Header with Month Selector -->
+      <div class="section-top-bar">
+        <div>
+          <h2>👑 Mess Community Transparency Ledger</h2>
+          <p style="font-size: 0.85rem; color: var(--text-secondary);">
+            Administrative transparency ledger. Complete overview of student meal counts, monthly base fees, fines, cook
+            fees, and payment status.
+          </p>
+        </div>
+
+        <div class="filter-group">
+          <label style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">Billing Month:</label>
+          <select id="transparency-month-select" class="form-select">
+            <!-- Injected dynamically with options -->
+          </select>
+          <button class="btn btn-outline btn-sm" id="print-board-btn" title="Print for physical Notice Board">
+            🖨️ Print Notice Board
+          </button>
+        </div>
+      </div>
+
+      <!-- High Level Mess Ledger Summary Cards -->
+      <div class="stat-grid">
+        <div class="glass-panel stat-card" style="--stat-glow: var(--primary-glow);">
+          <div class="stat-header">
+            <span class="stat-title">Total Meals Served</span>
+            <div class="stat-icon" style="color: var(--primary);">🍲</div>
+          </div>
+          <div class="stat-value" id="trans-stat-meals">0</div>
+          <div class="stat-subtext" id="trans-stat-members">Across 0 students</div>
+        </div>
+
+        <div class="glass-panel stat-card" style="--stat-glow: var(--primary-glow);">
+          <div class="stat-header">
+            <span class="stat-title">Total Mess Collections</span>
+            <div class="stat-icon" style="color: #34d399;">💰</div>
+          </div>
+          <div class="stat-value" id="trans-stat-collected">₹0</div>
+          <div class="stat-subtext" id="trans-stat-billed">Out of ₹0 billed</div>
+        </div>
+
+        <div class="glass-panel stat-card" style="--stat-glow: var(--danger-glow);">
+          <div class="stat-header">
+            <span class="stat-title">Total Outstanding Dues</span>
+            <div class="stat-icon" style="color: #f87171;">⚠️</div>
+          </div>
+          <div class="stat-value" id="trans-stat-due" style="color: #f87171;">₹0</div>
+          <div class="stat-subtext" id="trans-stat-overdue-count">0 students overdue</div>
+        </div>
+
+        <div class="glass-panel stat-card" style="--stat-glow: var(--accent-glow);">
+          <div class="stat-header">
+            <span class="stat-title">Rannar Masi Cook Pool</span>
+            <div class="stat-icon" style="color: var(--accent);">👩‍🍳</div>
+          </div>
+          <div class="stat-value" id="trans-stat-masi">₹0</div>
+          <div class="stat-subtext" id="trans-stat-masi-target">Target: ₹0 (₹400/head)</div>
+        </div>
+      </div>
+
+      <!-- Regulatory Notice Banner -->
+      <div
+        style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-glass); border-radius: var(--radius-md); padding: 0.85rem 1.25rem; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+        <div style="display: flex; align-items: center; gap: 0.65rem; font-size: 0.82rem;">
+          <span style="font-size: 1.1rem;">⚖️</span>
+          <span>
+            <strong>Mess Mate Payment Rules:</strong>
+            1) Every month <strong>₹700 monthly mess payment</strong> must be paid by the <strong>5th of every month</strong>.
+            2) <strong>Maid payment (₹400)</strong> must be paid by the <strong>7th of every month</strong>.
+            Combined Mess + Maid: <strong>₹1,100</strong>. Pay via <strong>Any UPI</strong> with instant pre-filled amounts.
+          </span>
+        </div>
+        <div class="filter-group">
+          <input type="text" id="transparency-search-input" class="form-input" placeholder="Search by name or room..."
+            style="min-width: 220px;">
+          <select id="transparency-status-filter" class="form-select">
+            <option value="ALL">All Statuses</option>
+            <option value="PAID">Paid Only</option>
+            <option value="PENDING">Pending Only</option>
+            <option value="OVERDUE">Overdue (Fine Applied)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Public Data Table -->
+      <div class="table-responsive">
+        <table class="data-table" id="transparency-table">
+          <thead>
+            <tr>
+              <th>Student & Room</th>
+              <th>Meals Attended</th>
+              <th>Monthly Fee (₹700)</th>
+              <th>Prev Month Due (₹)</th>
+              <th>Cook Fee (₹400)</th>
+              <th>Late Fine (₹100)</th>
+              <th>Total Bill (₹)</th>
+              <th>Total Paid (₹)</th>
+              <th>Due Balance (₹)</th>
+              <th>Payment Status</th>
+            </tr>
+          </thead>
+          <tbody id="transparency-tbody">
+            <!-- Injected via JavaScript -->
+          </tbody>
+        </table>
+      </div>
+
+    </section>
+
+    <!-- =========================================================================
+         VIEW 4: ADMIN / MESS MANAGER CONTROL PANEL
+         ========================================================================= -->
+    <section id="view-admin" style="display: none;">
+
+      <!-- Admin Top Bar -->
+      <div class="section-top-bar">
+        <div>
+          <h2>Mess Manager Control Center</h2>
+          <p style="font-size: 0.85rem; color: var(--text-secondary);">
+            Manage daily kitchen headcounts, verify payment screenshot proofs, control the Cook's salary pool, and
+            maintain member records.
+          </p>
+        </div>
+        <div class="filter-group">
+          <button class="btn btn-outline btn-sm" id="admin-refresh-stats-btn">🔄 Refresh Data</button>
+          <button class="btn btn-primary btn-sm" id="admin-recalc-btn">⚡ Re-calculate All Bills</button>
+        </div>
+      </div>
+
+      <!-- Today's Market Duty & Kitchen Routine (Admin View) -->
+      <div class="glass-panel"
+        style="padding: 1.1rem 1.35rem; margin-bottom: 1.5rem; background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(16, 185, 129, 0.08)); border: 1px solid rgba(245, 158, 11, 0.28); border-radius: var(--radius-lg);">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+          <div style="display: flex; align-items: center; gap: 0.9rem;">
+            <div
+              style="font-size: 2rem; background: rgba(245, 158, 11, 0.15); width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-md);">
+              🛒</div>
+            <div>
+              <div
+                style="font-size: 0.75rem; color: #fbbf24; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">
+                Today's Assigned Market Duty (<span id="admin-today-day-name">Today</span>)</div>
+              <h3 style="font-size: 1.15rem; color: var(--text-primary); margin: 0.15rem 0;" id="admin-today-duty-team">
+                Loading market duty...</h3>
+              <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;">Market squad responsible for
+                today's bazaar and kitchen inventory.</p>
+            </div>
+          </div>
+          <div
+            style="display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap; background: rgba(0,0,0,0.22); padding: 0.6rem 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-glass);">
+            <div>
+              <span style="font-size: 0.72rem; color: var(--accent); font-weight: 700;">☀️ MORNING DISH:</span>
+              <div style="font-size: 0.88rem; font-weight: 600;" id="admin-today-morning-dish">Loading...</div>
+            </div>
+            <div style="border-left: 1px solid var(--border-glass); padding-left: 1.5rem;">
+              <span style="font-size: 0.72rem; color: var(--purple); font-weight: 700;">🌙 NIGHT DISH:</span>
+              <div style="font-size: 0.88rem; font-weight: 600;" id="admin-today-night-dish">Loading...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Top Metrics Grid -->
+      <div class="stat-grid">
+        <div class="glass-panel stat-card" style="--stat-glow: var(--primary-glow);">
+          <div class="stat-header">
+            <span class="stat-title">Today's Morning Eaters</span>
+            <div class="stat-icon" style="color: var(--accent);">☀️</div>
+          </div>
+          <div class="stat-value" id="admin-stat-morning">0</div>
+          <div class="stat-subtext" id="admin-stat-morning-skip">0 skipping</div>
+        </div>
+
+        <div class="glass-panel stat-card" style="--stat-glow: var(--primary-glow);">
+          <div class="stat-header">
+            <span class="stat-title">Today's Night Eaters</span>
+            <div class="stat-icon" style="color: var(--purple);">🌙</div>
+          </div>
+          <div class="stat-value" id="admin-stat-night">0</div>
+          <div class="stat-subtext" id="admin-stat-night-skip">0 skipping</div>
+        </div>
+
+        <div class="glass-panel stat-card" style="--stat-glow: var(--accent-glow);">
+          <div class="stat-header">
+            <span class="stat-title">Pending Payment Proofs</span>
+            <div class="stat-icon" style="color: var(--accent);">📥</div>
+          </div>
+          <div class="stat-value" id="admin-stat-pending-proofs" style="color: var(--accent);">0</div>
+          <div class="stat-subtext">Awaiting manager verification</div>
+        </div>
+
+        <div class="glass-panel stat-card" style="--stat-glow: rgba(245, 158, 11, 0.35);">
+          <div class="stat-header">
+            <span class="stat-title">Pending Student Signups</span>
+            <div class="stat-icon" style="color: #fbbf24;">🔔</div>
+          </div>
+          <div class="stat-value" id="admin-stat-pending-users" style="color: #fbbf24;">0</div>
+          <div class="stat-subtext">Requires Admin Approval</div>
+        </div>
+
+        <div class="glass-panel stat-card" style="--stat-glow: var(--danger-glow);">
+          <div class="stat-header">
+            <span class="stat-title">Defaulters (Overdue)</span>
+            <div class="stat-icon" style="color: var(--danger);">🚨</div>
+          </div>
+          <div class="stat-value" id="admin-stat-overdue-count" style="color: var(--danger);">0</div>
+          <div class="stat-subtext">Unpaid past 5th cutoff</div>
+        </div>
+      </div>
+
+      <!-- Admin Functional Tabs -->
+      <div class="auth-tabs" style="margin-bottom: 1.5rem; flex-wrap: wrap;">
+        <button class="auth-tab-btn active" id="admin-tab-meals-btn">🍽️ Headcount & Meal Attendance</button>
+        <button class="auth-tab-btn" id="admin-tab-pending-btn">🔔 Pending Approvals (<span id="admin-pending-badge"
+            style="color: #fbbf24; font-weight: bold;">0</span>)</button>
+        <button class="auth-tab-btn" id="admin-tab-proofs-btn">🔍 Verify Payment Proofs (<span
+            id="admin-proofs-badge">0</span>)</button>
+        <button class="auth-tab-btn" id="admin-tab-masi-btn">👩‍🍳 Rannar Masi Fund (₹400)</button>
+        <button class="auth-tab-btn" id="admin-tab-users-btn">👥 Manage Students</button>
+        <button class="auth-tab-btn" id="admin-tab-resets-btn">🔑 Password Resets (<span id="admin-resets-badge" style="color: #ef4444; font-weight: bold;">0</span>)</button>
+        <button class="auth-tab-btn" id="admin-tab-admins-btn">🛡️ Admin Roles</button>
+        <button class="auth-tab-btn" id="admin-tab-audit-btn">📜 Audit Log</button>
+        <button class="auth-tab-btn" id="admin-tab-settings-btn">⚙️ Mess Settings</button>
+      </div>
+
+      <!-- Admin Tab 1: Live Kitchen Headcount & Attendance -->
+      <div id="admin-tab-content-meals" class="admin-tab-pane">
+
+        <!-- Live Headcount Summary Bar & No-Show Callout -->
+        <div class="glass-panel" style="padding: 1.25rem; margin-bottom: 1.25rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.85rem;">
+            <div>
+              <h4 style="margin: 0;">📊 Daily Meal Headcount & No-Show Tracker</h4>
+              <p style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 0.2rem;">
+                Unmarked students automatically count as <strong>Eating</strong>. Only explicit opt-outs are counted as <strong>No-Shows</strong>.
+              </p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span class="badge-tag" id="admin-headcount-total-badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; font-weight: 700;">
+                👥 Total Students: 0
+              </span>
+            </div>
+          </div>
+
+          <!-- Quick Headcount Pills -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem; margin-bottom: 1rem;">
+            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: var(--radius-sm); padding: 0.65rem 0.85rem;">
+              <div style="font-size: 0.75rem; font-weight: 700; color: var(--accent); margin-bottom: 0.35rem;">
+                ☀️ BREAKFAST & LUNCH (সকাল/দুপুর)
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.85rem;">
+                <span class="corner-pill-eating"><strong id="admin-hc-morning-eating">0</strong> Eating</span>
+                <span style="color: var(--text-muted);">|</span>
+                <span class="corner-pill-skip"><strong id="admin-hc-morning-skip">0</strong> No-Shows</span>
+              </div>
+            </div>
+
+            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: var(--radius-sm); padding: 0.65rem 0.85rem;">
+              <div style="font-size: 0.75rem; font-weight: 700; color: var(--purple); margin-bottom: 0.35rem;">
+                🌙 DINNER (রাতের খাবার)
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.85rem;">
+                <span class="corner-pill-eating"><strong id="admin-hc-night-eating">0</strong> Eating</span>
+                <span style="color: var(--text-muted);">|</span>
+                <span class="corner-pill-skip"><strong id="admin-hc-night-skip">0</strong> No-Shows</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dedicated No-Show Students Callout -->
+          <div id="admin-no-shows-container" style="background: rgba(239, 68, 68, 0.08); border: 1px dashed rgba(239, 68, 68, 0.3); border-radius: var(--radius-sm); padding: 0.75rem 1rem;">
+            <div style="font-size: 0.8rem; font-weight: 700; color: #fca5a5; margin-bottom: 0.45rem; display: flex; align-items: center; gap: 0.4rem;">
+              <span>🚨 Today's No-Show / Opted Out Students (Not Eating):</span>
+            </div>
+            <div id="admin-no-shows-list" style="font-size: 0.78rem; color: var(--text-secondary);">
+              Loading no-show data...
+            </div>
+          </div>
+        </div>
+
+        <!-- Member Daily Attendance List -->
+        <div class="glass-panel" style="padding: 1.5rem; margin-bottom: 1.5rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+            <h4>Student Meal Responses for Date</h4>
+            <input type="date" id="admin-meal-date-picker" class="form-input" style="max-width: 170px;">
+          </div>
+
+          <div class="table-responsive" style="max-height: 420px; overflow-y: auto;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Room</th>
+                  <th>Student</th>
+                  <th>Morning (Breakfast)</th>
+                  <th>Night (Dinner)</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="admin-meals-tbody">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Tab: Pending Student Registrations Queue -->
+      <div id="admin-tab-content-pending" class="admin-tab-pane" style="display: none;">
+        <div class="glass-panel" style="padding: 1.5rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+            <div>
+              <h4 style="display: flex; align-items: center; gap: 0.5rem;">
+                <span>🔔</span> Pending Student Registration Approvals
+              </h4>
+              <p style="font-size: 0.82rem; color: var(--text-secondary);">
+                When new students sign up, they cannot sign in until you approve them. Review details below and approve
+                to activate their portal access.
+              </p>
+            </div>
+            <button class="btn btn-outline btn-sm" id="admin-refresh-pending-btn">🔄 Refresh Requests</button>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Applied On</th>
+                  <th>Student Name</th>
+                  <th>Email (Login ID)</th>
+                  <th>Room / Bed</th>
+                  <th>Phone</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admin-pending-tbody">
+                <tr>
+                  <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                    Loading pending student approvals...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Tab 2: Payment Proof Verification Queue -->
+      <div id="admin-tab-content-proofs" class="admin-tab-pane" style="display: none;">
+        <div class="glass-panel" style="padding: 1.5rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+            <div>
+              <h4>Pending Payment Proof Submissions</h4>
+              <p style="font-size: 0.82rem; color: var(--text-secondary);">
+                Inspect student screenshots, compare transaction UTR numbers with your bank account, and approve to
+                credit balance.
+              </p>
+            </div>
+            <button class="btn btn-outline btn-sm" id="admin-refresh-proofs-btn">🔄 Refresh Queue</button>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Submission Time</th>
+                  <th>Student</th>
+                  <th>Room</th>
+                  <th>Month</th>
+                  <th>Amount</th>
+                  <th>UTR / Txn ID</th>
+                  <th>Screenshot Proof</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admin-proofs-tbody">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Tab 3: Rannar Masi Fund Tracker -->
+      <div id="admin-tab-content-masi" class="admin-tab-pane" style="display: none;">
+        <div class="masi-card">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <h3>👩‍🍳 Rannar Masi (Cook Maid) Monthly Salary Ledger</h3>
+              <p style="font-size: 0.85rem; color: var(--text-secondary);">
+                Mandatory ₹400/month per student. Rule: Every student must pay between the 1st and <strong>7th of the
+                  month</strong>.
+              </p>
+            </div>
+            <div style="text-align: right;">
+              <span style="font-size: 0.75rem; color: var(--text-muted);">Cutoff Deadline:</span>
+              <div style="font-weight: 700; color: var(--accent);">7th of Every Month</div>
+            </div>
+          </div>
+
+          <div class="progress-bar-container">
+            <div class="progress-bar-fill" id="masi-progress-bar" style="width: 0%;"></div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 1.25rem;">
+            <span>Collected: <strong id="masi-collected-text">₹0</strong></span>
+            <span>Target Pool: <strong id="masi-target-text">₹0</strong></span>
+            <span>Deficit: <strong id="masi-deficit-text" style="color: #f87171;">₹0</strong></span>
+          </div>
+
+          <!-- Students List for Masi Fee -->
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Room</th>
+                  <th>Cook Fee</th>
+                  <th>7-Day Deadline Status</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="admin-masi-tbody">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Tab 4: Manage Students (Full Control) -->
+      <div id="admin-tab-content-users" class="admin-tab-pane" style="display: none;">
+        <div class="glass-panel" style="padding: 1.5rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem;">
+            <div>
+              <h4 style="margin: 0 0 0.25rem 0;">Mess Students Control Center</h4>
+              <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;">Comprehensive student profile management, full payment ledger, attendance audit, and credential controls.</p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+              <div style="display: inline-flex; background: rgba(255, 255, 255, 0.05); border-radius: var(--radius-sm); padding: 2px;">
+                <button type="button" class="filter-pill-btn" id="admin-users-filter-all" onclick="setStudentFilter('all')">All</button>
+                <button type="button" class="filter-pill-btn active" id="admin-users-filter-active" onclick="setStudentFilter('active')">🟢 Active</button>
+                <button type="button" class="filter-pill-btn" id="admin-users-filter-inactive" onclick="setStudentFilter('inactive')">⚪ Inactive / Removed</button>
+              </div>
+              <input type="text" id="admin-users-search-input" class="form-control" placeholder="🔍 Search name, room, email..." style="width: 210px; font-size: 0.82rem; padding: 0.4rem 0.65rem;" oninput="filterStudentsTable()">
+              <button class="btn btn-primary btn-sm" id="admin-add-user-modal-btn">➕ Add New Student</button>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Student & Room</th>
+                  <th>Contact Info</th>
+                  <th>Prev Dues</th>
+                  <th>Current Month Due</th>
+                  <th>Lifetime Paid</th>
+                  <th>Status</th>
+                  <th style="text-align: right;">Administrative Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admin-users-tbody">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Tab 5: Admin Roles & Access Management (Owner Exclusive) -->
+      <div id="admin-tab-content-admins" class="admin-tab-pane" style="display: none;">
+        <div class="glass-panel" style="padding: 1.5rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem;">
+            <div>
+              <h4 style="margin: 0 0 0.25rem 0;">🛡️ Administrator Roles & Access Control</h4>
+              <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;">Manage manager accounts, grant granular operational privileges, or deactivate credentials. Only Website Owner can add or deactivate admins.</p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <button class="btn btn-outline btn-sm" id="admin-refresh-admins-btn" onclick="loadAdminAccounts()">🔄 Refresh Admins</button>
+              <button class="btn btn-primary btn-sm" id="admin-add-admin-modal-btn" onclick="openAddAdminModal()">➕ Add New Admin</button>
+            </div>
+          </div>
+
+          <div id="admin-owner-callout-banner" style="display: flex; align-items: center; gap: 0.75rem; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: var(--radius-md); padding: 0.85rem 1rem; margin-bottom: 1.25rem; font-size: 0.83rem;">
+            <span style="font-size: 1.4rem;">👑</span>
+            <div>
+              <strong style="color: #60a5fa;">Website Owner Security Model:</strong> Primary Website Owner account (<code style="background: rgba(255,255,255,0.08); padding: 2px 5px; border-radius: 4px;">akashadak162006@gmail.com</code> - Akash Adak) holds immutable owner authority. Secondary admins (like Assistant Manager Bhabani Prasad Ghosh) have manager access, but cannot delete or deactivate the Owner.
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Admin Name & Contact</th>
+                  <th>Authority Tier</th>
+                  <th>Permissions</th>
+                  <th>Account Status</th>
+                  <th>Created Date</th>
+                  <th style="text-align: right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admin-admins-tbody">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Tab: Student Password Reset Requests Queue -->
+      <div id="admin-tab-content-resets" class="admin-tab-pane" style="display: none;">
+        <div class="glass-panel" style="padding: 1.5rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.25rem;">
+            <div>
+              <h4 style="display: flex; align-items: center; gap: 0.5rem; margin: 0 0 0.25rem;">
+                <span>🔑</span> Student Password Reset Requests
+              </h4>
+              <p style="font-size: 0.82rem; color: var(--text-secondary); margin: 0;">
+                Students who forgot their password submit requests here. Review details and assign a new password for the student.
+              </p>
+            </div>
+            <button class="btn btn-outline btn-sm" id="admin-refresh-resets-btn">🔄 Refresh Requests</button>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Requested At</th>
+                  <th>Student Name</th>
+                  <th>Email (Login ID)</th>
+                  <th>Room No</th>
+                  <th>Mobile Number</th>
+                  <th>Student Note</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admin-resets-tbody">
+                <tr>
+                  <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                    Loading password reset requests...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Tab 6: Audit Activity Log -->
+      <div id="admin-tab-content-audit" class="admin-tab-pane" style="display: none;">
+        <div class="glass-panel" style="padding: 1.5rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem;">
+            <div>
+              <h4 style="margin: 0 0 0.25rem 0;">📜 Administrative Security & Activity Audit Log</h4>
+              <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;">Tamper-resistant activity log recording student modifications, payment approvals, status transitions, and admin operations.</p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
+              <select id="audit-action-filter" class="form-control" style="width: 170px; font-size: 0.82rem; padding: 0.4rem 0.5rem;" onchange="filterAuditLogs()">
+                <option value="">All Action Types</option>
+                <option value="STUDENT_ADDED">Student Added</option>
+                <option value="STUDENT_EDITED">Student Edited</option>
+                <option value="STUDENT_DEACTIVATED">Student Deactivated</option>
+                <option value="STUDENT_ACTIVATED">Student Activated</option>
+                <option value="STUDENT_REMOVED">Student Soft-Removed</option>
+                <option value="STUDENT_PASSWORD_RESET">Password Reset</option>
+                <option value="PAYMENT_APPROVED">Payment Approved</option>
+                <option value="PAYMENT_REJECTED">Payment Rejected</option>
+                <option value="ADMIN_CREATED">Admin Created</option>
+                <option value="ADMIN_DEACTIVATED">Admin Deactivated</option>
+                <option value="SETTINGS_UPDATED">Settings Updated</option>
+              </select>
+              <input type="text" id="audit-search-input" class="form-control" placeholder="🔍 Search admin, target, or details..." style="width: 210px; font-size: 0.82rem; padding: 0.4rem 0.65rem;" oninput="filterAuditLogs()">
+              <button class="btn btn-outline btn-sm" id="audit-refresh-btn" onclick="loadAdminAuditLogs()">🔄 Refresh Log</button>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width: 160px;">Date & Time</th>
+                  <th>Admin Name</th>
+                  <th>Action</th>
+                  <th>Target User</th>
+                  <th>Details</th>
+                </tr>
+              </thead>
+              <tbody id="admin-audit-tbody">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Tab 5: Mess Settings -->
+      <div id="admin-tab-content-settings" class="admin-tab-pane" style="display: none;">
+        <div class="glass-panel" style="padding: 1.5rem; max-width: 800px;">
+          <h4 style="margin-bottom: 1rem;">Mess Configuration & Payment Rules</h4>
+
+          <form id="admin-settings-form">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+              <div class="form-group">
+                <label class="form-label">Mess Name</label>
+                <input type="text" id="set-mess-name" class="form-control" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Monthly Mess Fee per Student (₹)</label>
+                <input type="number" id="set-monthly-fee" class="form-control" value="700" required>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
+              <div class="form-group">
+                <label class="form-label">Payment Scanner Name</label>
+                <input type="text" id="set-scanner-name" class="form-control" value="Bhabani Payment Scanner" required>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+              <div class="form-group">
+                <label class="form-label">Late Fine Amount (₹)</label>
+                <input type="number" id="set-fine-amount" class="form-control" value="100" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Fine Cutoff Day of Month (Default: 15)</label>
+                <input type="number" id="set-fine-cutoff" class="form-control" min="1" max="31" value="15" required>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+              <div class="form-group">
+                <label class="form-label">Rannar Masi (Cook) Fee per Head (₹)</label>
+                <input type="number" id="set-masi-fee" class="form-control" value="400" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Cook Cutoff Day of Month (Default: 7)</label>
+                <input type="number" id="set-masi-cutoff" class="form-control" min="1" max="31" value="7" required>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+              <div class="form-group">
+                <label class="form-label">Mess Manager UPI ID (for QR Code)</label>
+                <input type="text" id="set-upi-id" class="form-control" placeholder="e.g. messmanager@okaxis" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">UPI Display Name</label>
+                <input type="text" id="set-upi-name" class="form-control" placeholder="Mess Food Manager" required>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+              <div class="form-group">
+                <label class="form-label">Bank Name</label>
+                <input type="text" id="set-bank-name" class="form-control" placeholder="State Bank of India">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Account Number</label>
+                <input type="text" id="set-acc-no" class="form-control">
+              </div>
+              <div class="form-group">
+                <label class="form-label">IFSC Code</label>
+                <input type="text" id="set-ifsc" class="form-control">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Dashboard Announcement Message</label>
+              <textarea id="set-announcement" class="form-control" rows="2"></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="save-settings-btn">
+              💾 Save Settings
+            </button>
+          </form>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- =========================================================================
+         VIEW 5: WEEKLY MESS FOOD & MARKET ROUTINE
+         ========================================================================= -->
+    <section id="view-menu" style="display: none;">
+      <div class="section-top-bar">
+        <div>
+          <h2>📅 Weekly Food Menu & Market Routine (সাপ্তাহিক খাবার ও বাজার রুটিন)</h2>
+          <p style="font-size: 0.85rem; color: var(--text-secondary);">
+            Official 7-day meal schedule and daily market duty assigned students.
+          </p>
+        </div>
+        <div class="filter-group">
+          <button class="btn btn-outline btn-sm" id="print-routine-btn">🖨️ Print Routine</button>
+          <button class="btn btn-primary btn-sm" id="edit-routine-btn" style="display: none;">✏️ Edit Routine</button>
+        </div>
+      </div>
+
+      <!-- Routine Master Table (Matching handwritten routine table) -->
+      <div class="glass-panel" style="padding: 1.5rem; margin-bottom: 2rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+          <h3 style="display: flex; align-items: center; gap: 0.5rem; font-size: 1.2rem;">
+            <span>📋</span> Complete 7-Day Food & Market Chart
+          </h3>
+          <span class="badge-tag" style="background: rgba(16,185,129,0.15); color: #34d399; font-weight: 600;">Standard
+            Routine Active</span>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table" id="routine-master-table">
+            <thead>
+              <tr>
+                <th style="min-width: 140px;">Day (বার)</th>
+                <th style="min-width: 220px;">🛒 Market Duty (বাজারের দায়িত্ব)</th>
+                <th style="min-width: 260px;">☀️ Morning (সকালের মেনু)</th>
+                <th style="min-width: 260px;">🌙 Night (রাতের মেনু)</th>
+              </tr>
+            </thead>
+            <tbody id="routine-master-tbody">
+              <!-- Injected via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Routine Cards Grid -->
+      <h3
+        style="margin-bottom: 1rem; color: var(--text-secondary); font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
+        <span>📱</span> Daily Visual Schedule Cards
+      </h3>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem;"
+        id="weekly-menu-cards-container">
+        <!-- Injected via JS -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- =========================================================================
+       MODAL: EDIT FOOD & MARKET ROUTINE (Admin)
+       ========================================================================= -->
+  <div class="modal-overlay" id="edit-routine-modal">
+    <div class="modal-dialog" style="max-width: 840px;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.65rem;">
+          <div style="font-size: 1.35rem;">✏️</div>
+          <div>
+            <h4 style="font-size: 1.15rem; color: var(--primary);">Edit Food & Market Routine</h4>
+            <p style="font-size: 0.75rem; color: var(--text-secondary);">Update market duty team assignments and daily
+              dishes</p>
+          </div>
+        </div>
+        <button class="btn-icon modal-close-btn" data-modal="edit-routine-modal">✕</button>
+      </div>
+
+      <form id="edit-routine-form">
+        <div class="modal-body" style="max-height: 65vh; overflow-y: auto; padding: 1.25rem;"
+          id="edit-routine-modal-body">
+          <!-- Injected via JS -->
+        </div>
+
+        <div class="modal-footer"
+          style="padding: 1rem 1.5rem; border-top: 1px solid var(--border-glass); display: flex; justify-content: flex-end; gap: 0.75rem;">
+          <button type="button" class="btn btn-outline modal-close-btn" data-modal="edit-routine-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="save-routine-modal-btn">💾 Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 1: PAY BILL & SUBMIT SCREENSHOT PROOF
+       ========================================================================= -->
+  <div class="modal-overlay" id="pay-modal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.65rem;">
+          <div style="font-size: 1.35rem;">📱</div>
+          <div>
+            <h4 style="font-size: 1.15rem; color: var(--primary);">Bhabani Payment Scanner</h4>
+            <p style="font-size: 0.75rem; color: var(--text-secondary);">Scan Bhabani's QR code & upload transaction
+              screenshot</p>
+          </div>
+        </div>
+        <button class="btn-icon modal-close-btn" data-modal="pay-modal">✕</button>
+      </div>
+
+      <form id="payment-submission-form">
+        <div class="modal-body">
+
+          <!-- Direct UPI Apps Selector inside Modal -->
+          <div
+            style="margin-bottom: 1rem; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-glass); border-radius: var(--radius-md); padding: 1rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+              <span style="font-weight: 700; font-size: 0.9rem; color: var(--primary);">⚡ Pay Directly via Any UPI
+                App:</span>
+              <span style="font-size: 0.75rem; color: var(--text-muted);">One-click pay</span>
+            </div>
+            <div class="upi-app-grid" style="margin-bottom: 0.5rem;">
+              <button type="button" class="upi-app-btn gpay" id="modal-pay-gpay-btn">
+                <span class="upi-app-icon">🟢</span>
+                <span class="upi-app-title">Google Pay</span>
+              </button>
+              <button type="button" class="upi-app-btn phonepe" id="modal-pay-phonepe-btn">
+                <span class="upi-app-icon">🟣</span>
+                <span class="upi-app-title">PhonePe</span>
+              </button>
+              <button type="button" class="upi-app-btn paytm" id="modal-pay-paytm-btn">
+                <span class="upi-app-icon">🔵</span>
+                <span class="upi-app-title">Paytm</span>
+              </button>
+              <button type="button" class="upi-app-btn bhim" id="modal-pay-bhim-btn">
+                <span class="upi-app-icon">🟠</span>
+                <span class="upi-app-title">BHIM UPI</span>
+              </button>
+              <button type="button" class="upi-app-btn generic" id="modal-pay-generic-btn">
+                <span class="upi-app-icon">📱</span>
+                <span class="upi-app-title">Any UPI App</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Bhabani QR Code & UPI Details Card -->
+          <div class="qr-payment-card"
+            style="border: 2px solid rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.04);">
+            <div style="font-weight: 700; color: var(--primary); font-size: 1.05rem; margin-bottom: 0.35rem;">Bhabani
+              Payment Scanner</div>
+            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.75rem;">Payee: <strong>Bhabani
+                Prasad Ghosh</strong></div>
+            <img src="/assets/bhabani_scanner.jpeg" alt="Bhabani Payment Scanner" class="qr-code-img"
+              id="pay-modal-qr-img"
+              style="width: 200px; height: 200px; object-fit: contain; background: #fff; padding: 6px;">
+            <div style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 0.4rem;">Scan with GPay /
+              PhonePe / Paytm / Any UPI App:</div>
+            <div class="upi-pill" id="copy-upi-pill" title="Click to copy UPI ID">
+              <span id="pay-modal-upi-id">8927971674@fam</span> 📋
+            </div>
+            <div style="display: flex; gap: 0.4rem; justify-content: center; flex-wrap: wrap; margin-top: 0.75rem;">
+              <button type="button" class="btn btn-outline btn-sm" id="pay-modal-quick-1100-btn">
+                ⚡ ₹1,100 (Both)
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" id="pay-modal-quick-700-btn">
+                🍲 ₹700 (Mess)
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" id="pay-modal-quick-400-btn">
+                👩‍🍳 ₹400 (Maid)
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" id="pay-modal-quick-due-btn">
+                🌟 Full Due
+              </button>
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;" id="pay-modal-bank-text">
+              SBI A/C: 382910482910 | IFSC: SBIN0012345
+            </div>
+          </div>
+
+          <!-- Amount & Month to pay -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 1rem;">
+            <div class="form-group">
+              <label class="form-label" for="pay-amount-input">Amount to Pay (₹)</label>
+              <input type="number" id="pay-amount-input" class="form-control" step="1" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="pay-month-input">Billing Month</label>
+              <input type="month" id="pay-month-input" class="form-control" required>
+            </div>
+          </div>
+
+          <!-- Payer UPI ID and App Used Options -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="form-group">
+              <label class="form-label" for="pay-payer-upi-id">Your UPI ID (Optional)</label>
+              <input type="text" id="pay-payer-upi-id" class="form-control"
+                placeholder="e.g. rahul@okaxis or 9876543210@paytm">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="pay-upi-app">Payment Method / App</label>
+              <select id="pay-upi-app" class="form-select">
+                <option value="Google Pay">Google Pay (GPay)</option>
+                <option value="PhonePe">PhonePe</option>
+                <option value="Paytm">Paytm</option>
+                <option value="BHIM UPI">BHIM UPI</option>
+                <option value="Cred">Cred</option>
+                <option value="Amazon Pay">Amazon Pay</option>
+                <option value="Direct UPI ID">Direct UPI ID / QR Scanner</option>
+                <option value="Bank Transfer">Net Banking / NEFT</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="pay-utr-input">Transaction ID / UTR Number (12 Digits)</label>
+            <input type="text" id="pay-utr-input" class="form-control" placeholder="e.g. 423819283921" required>
+          </div>
+
+          <!-- Screenshot Upload Dropzone -->
+          <div class="form-group">
+            <label class="form-label">Payment Screenshot Proof (Required)</label>
+            <div class="upload-dropzone" id="proof-dropzone">
+              <div class="upload-icon">📸</div>
+              <div style="font-weight: 600; font-size: 0.9rem;">Click or Drag & Drop Screenshot Here</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Supported: JPG, PNG, WebP
+                (Max 10MB)</div>
+              <input type="file" id="proof-file-input" accept="image/jpeg,image/png,image/webp,image/jpg"
+                style="display: none;" required>
+            </div>
+            <!-- Image preview -->
+            <div class="preview-container" id="proof-preview-container">
+              <img id="proof-preview-img" src="" alt="Proof Preview">
+              <button type="button" class="btn btn-danger btn-sm" id="remove-proof-btn" style="margin-top: 0.5rem;">
+                ✕ Remove Image
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="pay-note-input">Optional Note / Remarks</label>
+            <input type="text" id="pay-note-input" class="form-control"
+              placeholder="e.g. Cleared ₹700 monthly fee via GPay">
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline modal-close-btn" data-modal="pay-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="submit-payment-proof-btn">
+            🚀 Submit Proof for Verification
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 2: ADMIN PAYMENT PROOF LIGHTBOX & VERIFICATION
+       ========================================================================= -->
+  <div class="modal-overlay" id="admin-verify-modal">
+    <div class="modal-dialog" style="max-width: 650px;">
+      <div class="modal-header">
+        <div>
+          <h4>Payment Proof Verification</h4>
+          <p style="font-size: 0.75rem; color: var(--text-secondary);" id="verify-modal-user-meta">Submitted by ...</p>
+        </div>
+        <button class="btn-icon modal-close-btn" data-modal="admin-verify-modal">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- High-res image display -->
+        <div style="text-align: center; margin-bottom: 1rem;">
+          <img src="" alt="Payment Proof Screenshot" id="verify-lightbox-img" class="proof-lightbox-img">
+        </div>
+
+        <div
+          style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; background: rgba(255, 255, 255, 0.03); padding: 0.85rem; border-radius: var(--radius-md); font-size: 0.85rem; margin-bottom: 1rem;">
+          <div>Amount Claimed: <strong id="verify-amount" style="color: var(--primary);">₹0</strong></div>
+          <div>Billing Month: <strong id="verify-month">...</strong></div>
+          <div>UTR / Txn ID: <strong id="verify-utr" style="font-family: monospace;">...</strong></div>
+          <div>Payment Date: <strong id="verify-date">...</strong></div>
+          <div>Payer UPI ID: <strong id="verify-payer-upi"
+              style="font-family: monospace; color: var(--accent);">N/A</strong></div>
+          <div>Payment Method: <strong id="verify-upi-app">UPI</strong></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="verify-admin-note">Verification Note / Remarks</label>
+          <input type="text" id="verify-admin-note" class="form-control"
+            placeholder="e.g. Verified with bank statement">
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger" id="verify-reject-btn">
+          ❌ Reject Proof
+        </button>
+        <button type="button" class="btn btn-primary" id="verify-approve-btn">
+          ✅ Approve & Credit Balance
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 3: ADMIN ADD STUDENT MODAL
+       ========================================================================= -->
+  <div class="modal-overlay" id="admin-add-user-modal">
+    <div class="modal-dialog" style="max-width: 480px;">
+      <div class="modal-header">
+        <h4>Register New Student</h4>
+        <button class="btn-icon modal-close-btn" data-modal="admin-add-user-modal">✕</button>
+      </div>
+
+      <form id="admin-add-user-form">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Full Name</label>
+            <input type="text" id="admin-new-name" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" id="admin-new-email" class="form-control" required>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="form-group">
+              <label class="form-label">Room / Bed No</label>
+              <input type="text" id="admin-new-room" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Phone</label>
+              <input type="tel" id="admin-new-phone" class="form-control">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Default Password</label>
+            <input type="password" id="admin-new-password" class="form-control" value="user123" required>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline modal-close-btn"
+            data-modal="admin-add-user-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add Student</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 4: STUDENT DOSSIER & COMPLETE LIFETIME RECORD
+       ========================================================================= -->
+  <div class="modal-overlay" id="admin-student-dossier-modal">
+    <div class="modal-dialog" style="max-width: 860px; max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="modal-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 1rem;">
+        <div style="display: flex; align-items: center; gap: 0.85rem;">
+          <div class="user-avatar" id="dossier-avatar" style="width: 44px; height: 44px; font-size: 1.25rem;">U</div>
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <h4 id="dossier-name" style="margin: 0; font-size: 1.25rem;">Student Name</h4>
+              <span id="dossier-status-badge" class="status-pill status-paid">Active</span>
+            </div>
+            <p id="dossier-meta" style="margin: 0.15rem 0 0 0; font-size: 0.8rem; color: var(--text-secondary);">Room: - | Joined: -</p>
+          </div>
+        </div>
+        <button class="btn-icon modal-close-btn" data-modal="admin-student-dossier-modal">✕</button>
+      </div>
+
+      <div class="modal-body" style="overflow-y: auto; padding: 1.25rem;">
+        <!-- Financial Overview Stat Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.85rem; margin-bottom: 1.5rem;">
+          <div class="stat-card" style="padding: 1rem; border-radius: var(--radius-md); background: rgba(255,255,255,0.03);">
+            <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">Current Due Balance</div>
+            <div id="dossier-current-due" style="font-size: 1.35rem; font-weight: 700; color: #f87171; margin-top: 0.25rem;">₹0</div>
+            <div id="dossier-bill-breakdown" style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.2rem;">Mess: ₹0 • Masi: ₹0</div>
+          </div>
+          <div class="stat-card" style="padding: 1rem; border-radius: var(--radius-md); background: rgba(255,255,255,0.03);">
+            <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">Previous Month Dues</div>
+            <div id="dossier-prev-due" style="font-size: 1.35rem; font-weight: 700; color: #fbbf24; margin-top: 0.25rem;">₹0</div>
+            <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.2rem;">Carried forward balance</div>
+          </div>
+          <div class="stat-card" style="padding: 1rem; border-radius: var(--radius-md); background: rgba(255,255,255,0.03);">
+            <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">Total Lifetime Paid</div>
+            <div id="dossier-lifetime-paid" style="font-size: 1.35rem; font-weight: 700; color: var(--primary); margin-top: 0.25rem;">₹0</div>
+            <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.2rem;">Approved payments to date</div>
+          </div>
+          <div class="stat-card" style="padding: 1rem; border-radius: var(--radius-md); background: rgba(255,255,255,0.03);">
+            <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">30-Day Attendance</div>
+            <div id="dossier-attendance-summary" style="font-size: 1.35rem; font-weight: 700; color: #38bdf8; margin-top: 0.25rem;">0 meals</div>
+            <div id="dossier-attendance-detail" style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.2rem;">0 Breakfast • 0 Dinner</div>
+          </div>
+        </div>
+
+        <!-- Student Contact & Profile Details Grid -->
+        <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.85rem; font-size: 0.83rem;">
+          <div><span style="color: var(--text-muted);">Email Address:</span> <strong id="dossier-email" style="color: var(--text-primary);">-</strong></div>
+          <div><span style="color: var(--text-muted);">Phone Number:</span> <strong id="dossier-phone" style="color: var(--text-primary);">-</strong></div>
+          <div><span style="color: var(--text-muted);">Room / Bed:</span> <strong id="dossier-room" style="color: var(--text-primary);">-</strong></div>
+          <div><span style="color: var(--text-muted);">Account ID:</span> <strong id="dossier-id" style="color: var(--text-primary);">-</strong></div>
+        </div>
+
+        <!-- Section 1: Complete Payment & Dues History Table -->
+        <div style="margin-bottom: 1.5rem;">
+          <h5 style="margin: 0 0 0.75rem 0; font-size: 0.95rem; display: flex; align-items: center; gap: 0.5rem;">
+            💳 Complete Payment History & Dues Records
+          </h5>
+          <div class="table-responsive" style="max-height: 220px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+            <table class="data-table" style="font-size: 0.8rem;">
+              <thead>
+                <tr>
+                  <th>Date & Time</th>
+                  <th>Month</th>
+                  <th>Amount</th>
+                  <th>Txn / UTR</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Verifier Note</th>
+                </tr>
+              </thead>
+              <tbody id="dossier-payments-tbody">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Section 2: 30-Day Meal Attendance History Table -->
+        <div>
+          <h5 style="margin: 0 0 0.75rem 0; font-size: 0.95rem; display: flex; align-items: center; gap: 0.5rem;">
+            🍽️ Recent Meal Attendance History (Last 30 Days)
+          </h5>
+          <div class="table-responsive" style="max-height: 220px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+            <table class="data-table" style="font-size: 0.8rem;">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Breakfast (Morning)</th>
+                  <th>Dinner (Night)</th>
+                  <th>Attendance State</th>
+                  <th>Logged At</th>
+                </tr>
+              </thead>
+              <tbody id="dossier-meals-tbody">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="border-top: 1px solid var(--border-color); padding-top: 0.85rem; display: flex; justify-content: space-between;">
+        <div id="dossier-action-buttons" style="display: flex; gap: 0.5rem;">
+          <!-- Quick action buttons like Edit or Reset Pwd injected via JS -->
+        </div>
+        <button type="button" class="btn btn-outline modal-close-btn" data-modal="admin-student-dossier-modal">Close Dossier</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 5: EDIT STUDENT PROFILE
+       ========================================================================= -->
+  <div class="modal-overlay" id="admin-edit-student-modal">
+    <div class="modal-dialog" style="max-width: 480px;">
+      <div class="modal-header">
+        <h4>Edit Student Profile</h4>
+        <button class="btn-icon modal-close-btn" data-modal="admin-edit-student-modal">✕</button>
+      </div>
+      <form id="admin-edit-student-form">
+        <input type="hidden" id="edit-student-id">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Full Name</label>
+            <input type="text" id="edit-student-name" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email Address</label>
+            <input type="email" id="edit-student-email" class="form-control" required>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="form-group">
+              <label class="form-label">Room / Bed No</label>
+              <input type="text" id="edit-student-room" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Phone</label>
+              <input type="tel" id="edit-student-phone" class="form-control">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Account Status</label>
+            <select id="edit-student-status" class="form-control">
+              <option value="active">Active (On Active Roster)</option>
+              <option value="inactive">Inactive / Deactivated</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline modal-close-btn" data-modal="admin-edit-student-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 6: RESET STUDENT PASSWORD
+       ========================================================================= -->
+  <div class="modal-overlay" id="admin-reset-pwd-modal">
+    <div class="modal-dialog" style="max-width: 440px;">
+      <div class="modal-header">
+        <h4>Reset Student Password</h4>
+        <button class="btn-icon modal-close-btn" data-modal="admin-reset-pwd-modal">✕</button>
+      </div>
+      <form id="admin-reset-pwd-form">
+        <input type="hidden" id="reset-pwd-user-id">
+        <div class="modal-body">
+          <p style="font-size: 0.83rem; color: var(--text-secondary); margin-bottom: 1rem;">
+            Set a new temporary or permanent password for <strong id="reset-pwd-user-name" style="color: var(--text-primary);">Student</strong>. The student can use this password to immediately log in.
+          </p>
+          <div class="form-group">
+            <label class="form-label">New Password</label>
+            <input type="password" id="reset-new-password" class="form-control" placeholder="Minimum 4 characters" required minlength="4">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Confirm New Password</label>
+            <input type="password" id="reset-confirm-password" class="form-control" placeholder="Repeat new password" required minlength="4">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline modal-close-btn" data-modal="admin-reset-pwd-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Update Password</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 7: ADD NEW SECONDARY ADMIN (OWNER ONLY)
+       ========================================================================= -->
+  <div class="modal-overlay" id="admin-add-admin-modal">
+    <div class="modal-dialog" style="max-width: 500px;">
+      <div class="modal-header">
+        <h4>Create Administrator Account</h4>
+        <button class="btn-icon modal-close-btn" data-modal="admin-add-admin-modal">✕</button>
+      </div>
+      <form id="admin-add-admin-form">
+        <div class="modal-body">
+          <div style="background: rgba(59, 130, 246, 0.08); border-radius: var(--radius-sm); padding: 0.65rem 0.85rem; font-size: 0.78rem; color: #93c5fd; margin-bottom: 1rem;">
+            🛡️ <strong>Website Owner Action:</strong> Secondary admins will have access to the Manager Dashboard. Passwords are encrypted with bcrypt.
+          </div>
+          <div class="form-group">
+            <label class="form-label">Admin Full Name</label>
+            <input type="text" id="new-admin-name" class="form-control" placeholder="e.g. Assistant Manager" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Admin Login Email</label>
+            <input type="email" id="new-admin-email" class="form-control" placeholder="e.g. manager2@mess.com" required>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="form-group">
+              <label class="form-label">Phone Number</label>
+              <input type="tel" id="new-admin-phone" class="form-control" placeholder="9876543210">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Password</label>
+              <input type="password" id="new-admin-password" class="form-control" value="admin123" required minlength="4">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Operational Permissions</label>
+            <select id="new-admin-permissions" class="form-control">
+              <option value="all">Full Manager Privileges (All)</option>
+              <option value="billing">Billing & Payment Verification Only</option>
+              <option value="attendance">Headcount & Meal Attendance Only</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline modal-close-btn" data-modal="admin-add-admin-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create Admin Account</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Admin Resolve Password Reset Modal -->
+  <div id="admin-resolve-reset-modal" class="modal-backdrop" style="display: none;">
+    <div class="modal-card" style="max-width: 480px; padding: 2rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+        <h3 style="margin: 0; display: flex; align-items: center; gap: 0.5rem; font-size: 1.2rem;">
+          <span>🔑</span> Set Student Password
+        </h3>
+        <button type="button" id="admin-close-resolve-modal-btn" style="background: none; border: none; font-size: 1.25rem; color: var(--text-muted); cursor: pointer;">✕</button>
+      </div>
+
+      <div style="background: rgba(255,255,255,0.04); border: 1px solid var(--border-glass); border-radius: var(--radius-md); padding: 0.85rem; margin-bottom: 1.25rem; font-size: 0.85rem;">
+        <div style="margin-bottom: 0.35rem;">👤 <strong>Student:</strong> <span id="resolve-modal-student-name"></span></div>
+        <div style="margin-bottom: 0.35rem;">✉️ <strong>Email:</strong> <span id="resolve-modal-student-email"></span></div>
+        <div style="margin-bottom: 0.35rem;">📞 <strong>Phone:</strong> <span id="resolve-modal-student-phone"></span></div>
+        <div>📝 <strong>Student Note:</strong> <em id="resolve-modal-student-note" style="color: var(--text-secondary);"></em></div>
+      </div>
+
+      <form id="admin-resolve-reset-form">
+        <input type="hidden" id="resolve-modal-request-id">
+        <div class="form-group">
+          <label class="form-label" for="resolve-modal-new-pwd">Assign New Password</label>
+          <div style="display: flex; gap: 0.5rem;">
+            <input type="text" id="resolve-modal-new-pwd" class="form-control" placeholder="Enter new password" required minlength="4">
+            <button type="button" class="btn btn-outline btn-sm" id="resolve-modal-gen-pwd-btn" style="white-space: nowrap;">
+              🎲 Random
+            </button>
+          </div>
+          <p style="font-size: 0.76rem; color: var(--text-muted); margin: 0.35rem 0 0 0;">
+            Give this new password to the student so they can log in to their portal.
+          </p>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; margin-top: 1.25rem;">
+          <button type="submit" class="btn btn-primary" style="flex: 1; padding: 0.75rem; font-weight: 700;">
+            💾 Save & Set Password
+          </button>
+          <button type="button" class="btn btn-danger btn-sm" id="resolve-modal-reject-btn" style="padding: 0.75rem;">
+            ✕ Reject
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Mess Mate SaaS Footer -->
+  <footer class="messmate-footer">
+    <div class="footer-container">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <div style="display: flex; align-items: center; gap: 0.65rem; margin-bottom: 0.75rem;">
+            <span style="font-size: 1.5rem;">🍛</span>
+            <h4 style="font-size: 1.25rem; color: #fff;">MessMate </h4>
+          </div>
+          <p style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 1rem;">
+            India's smartest cloud-based mess management software & student mobile portal. Built for hostels, PGs,
+            canteens, and tiffin services.
+          </p>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">
+            Midnapore • Barasat • Kolkata • Matribhavan
+          </div>
+        </div>
+        <div class="footer-col">
+          <h5>SOLUTIONS</h5>
+          <ul>
+            <li><a href="javascript:void(0)"
+                onclick="if (state.user) switchView(state.user.role === 'admin' ? 'admin' : 'user');">Hostel & PG
+                Mess</a></li>
+            <li><a href="javascript:void(0)" onclick="switchView('menu')">Weekly Food Menus</a></li>
+            <li><a href="javascript:void(0)" onclick="if (state.user) switchView('transparency')">Community Notice
+                Board</a></li>
+            <li><a href="javascript:void(0)" onclick="document.getElementById('open-pay-modal-btn')?.click()">Direct UPI
+                Payments</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h5>RULES & BILLING</h5>
+          <ul>
+            <li><a href="javascript:void(0)">₹700 Mess Fee (Due by 5th)</a></li>
+            <li><a href="javascript:void(0)">₹400 Maid Fee (Due by 7th)</a></li>
+            <li><a href="javascript:void(0)">₹1,100 Combined Payment</a></li>
+            <!-- <li><a href="javascript:void(0)">Bhabani Payment Scanner</a></li> -->
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h5>DIRECT UPI SUPPORT</h5>
+          <ul>
+            <li><a href="javascript:void(0)">Google Pay (GPay)</a></li>
+            <li><a href="javascript:void(0)">PhonePe</a></li>
+            <li><a href="javascript:void(0)">Paytm UPI</a></li>
+            <li><a href="javascript:void(0)">BHIM UPI Intent</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div>© 2026 MessMate System. Powered by Akash Adak. All rights reserved.</div>
+        <div>Built for PGs & Student Messes Nationwide.</div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Real-Time Corner Headcount Widget (Visible to All Logged-in Students & Admins) -->
+  <aside id="corner-headcount-widget" class="corner-headcount-floating" aria-label="Today's Meal Headcount">
+    <div class="corner-header">
+      <div class="corner-header-left">
+        <span class="corner-pulse-dot"></span>
+        <span class="corner-title">Live Headcount</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 0.4rem;">
+        <span class="corner-total-badge" id="corner-total-students">👥 Total: 0</span>
+        <button class="corner-btn-toggle" id="corner-toggle-btn" title="Minimize or Expand">▾</button>
+      </div>
+    </div>
+    <div class="corner-body">
+      <div class="corner-meal-row">
+        <span class="corner-meal-name">☀️ Breakfast (সকাল/দুপুর)</span>
+        <div class="corner-meal-pill-group">
+          <span class="corner-pill-eating" title="Students Eating Breakfast"><span id="corner-morning-eating">0</span> Eating</span>
+          <span class="corner-pill-skip" title="Students Skipping / No-Shows"><span id="corner-morning-skip">0</span> Not Eating</span>
+        </div>
+      </div>
+      <div class="corner-meal-row">
+        <span class="corner-meal-name">🌙 Dinner (রাতের খাবার)</span>
+        <div class="corner-meal-pill-group">
+          <span class="corner-pill-eating" title="Students Eating Dinner"><span id="corner-night-eating">0</span> Eating</span>
+          <span class="corner-pill-skip" title="Students Skipping / No-Shows"><span id="corner-night-skip">0</span> Not Eating</span>
+        </div>
+      </div>
+    </div>
+    <div class="corner-footer">
+      <span>📌 Unmarked = <strong>Eating</strong></span>
+      <span id="corner-last-updated" style="font-size: 0.65rem;">Live</span>
+    </div>
+  </aside>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Client Application Script -->
+  <script src="/js/app.js"></script>
+</body>
+
+</html>
