@@ -3,328 +3,308 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const QRCode = require('qrcode');
+const eventBus = require('../events');
 const { db, recalculateAllBills, logAudit } = require('../database');
-const { verifyToken, optionalAuth, requireAdmin } = require('../middleware/auth');
+const { verifyToken, verifyAdmin } = require('../middleware/auth');
 
-// Setup upload destination
+// Configure Multer storage for payment proof screenshot uploads
 const uploadDir = path.join(__dirname, '..', '..', 'uploads', 'payments');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Multer storage config
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
+    const ext = path.extname(file.originalname);
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, `proof-${uniqueSuffix}${ext}`);
   }
 });
 
-const fileFilter = (req, file, cb) => {
-  const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
-  if (allowed.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error('Only JPG, PNG, and WebP image formats are accepted as proof.'), false);
-  }
-};
-
 const upload = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
-  fileFilter
-});
-
-// Generate dynamic UPI QR Code (self-contained, offline-ready)
-router.get('/qr-code', optionalAuth, async (req, res) => {
-  try {
-    const settings = db.prepare('SELECT * FROM mess_settings WHERE id = 1').get();
-    const upiId = req.query.upi_id || settings.upi_id || '8927971674@fam';
-    const upiName = req.query.upi_name || settings.upi_name || 'Bhabani Prasad Ghosh';
-    const scannerName = settings.scanner_name || 'Bhabani Payment Scanner';
-    const scannerImage = settings.scanner_image || '/assets/bhabani_scanner.jpeg';
-    const amount = req.query.amount ? parseFloat(req.query.amount) : null;
-
-    let upiUri = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(upiName)}&cu=INR`;
-    let txnNote = `Mess Mate Bill Payment`;
-    if (amount && amount > 0) {
-      upiUri += `&am=${amount.toFixed(2)}&tn=${encodeURIComponent(txnNote)}`;
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
     } else {
-      upiUri += `&tn=${encodeURIComponent(txnNote)}`;
+      cb(new Error('Only image files are allowed!'), false);
     }
-
-    // App-specific intent URIs for seamless mobile payment
-    const gpayUri = `tez://upi/pay?pa=${upiId}&pn=${encodeURIComponent(upiName)}&cu=INR${amount && amount > 0 ? `&am=${amount.toFixed(2)}` : ''}&tn=${encodeURIComponent(txnNote)}`;
-    const phonepeUri = `phonepe://pay?pa=${upiId}&pn=${encodeURIComponent(upiName)}&cu=INR${amount && amount > 0 ? `&am=${amount.toFixed(2)}` : ''}&tn=${encodeURIComponent(txnNote)}`;
-    const paytmUri = `paytmmp://pay?pa=${upiId}&pn=${encodeURIComponent(upiName)}&cu=INR${amount && amount > 0 ? `&am=${amount.toFixed(2)}` : ''}&tn=${encodeURIComponent(txnNote)}`;
-    const bhimUri = `bhim://pay?pa=${upiId}&pn=${encodeURIComponent(upiName)}&cu=INR${amount && amount > 0 ? `&am=${amount.toFixed(2)}` : ''}&tn=${encodeURIComponent(txnNote)}`;
-
-    const qrDataUrl = await QRCode.toDataURL(upiUri, {
-      margin: 2,
-      width: 280,
-      color: {
-        dark: '#0f172a',
-        light: '#ffffff'
-      }
-    });
-
-    return res.json({
-      success: true,
-      upi_id: upiId,
-      upi_name: upiName,
-      scanner_name: scannerName,
-      scanner_image: scannerImage,
-      monthly_fee: settings.monthly_fee || 700.0,
-      amount,
-      upi_uri: upiUri,
-      gpay_uri: gpayUri,
-      phonepe_uri: phonepeUri,
-      paytm_uri: paytmUri,
-      bhim_uri: bhimUri,
-      qr_data_url: qrDataUrl
-    });
-  } catch (err) {
-    console.error('Error generating QR code:', err);
-    return res.status(500).json({ success: false, message: 'Failed to generate QR code' });
   }
 });
 
-// Submit payment proof
-router.post('/submit', verifyToken, upload.single('screenshot'), (req, res) => {
+// =========================================================================
+// 1. STUDENT PAYMENT ROUTES
+// =========================================================================
+
+// Submit payment proof (Student)
+router.post('/submit', verifyToken, upload.single('screenshot'), async (req, res) => {
   try {
-    const { amount, payment_date, utr_number, month, note, payer_upi_id, upi_app } = req.body;
+    const userId = req.user.id;
+    const { month, amount, payment_date, utr_number, note, payer_upi_id, upi_app } = req.body;
+
+    if (!month || !amount || !payment_date || !utr_number) {
+      return res.status(400).json({ success: false, message: 'Month, amount, payment date, and UTR number are required.' });
+    }
 
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'Payment screenshot proof is required.' });
     }
 
-    if (!amount || !utr_number) {
-      // Clean up uploaded file if missing required fields
-      fs.unlinkSync(req.file.path);
-      return res.status(400).json({ success: false, message: 'Amount and UTR/Transaction ID are required.' });
+    const cleanUtr = utr_number.trim();
+
+    // Check duplicate UTR number across payments
+    const existingUtr = await db.execute({
+      sql: 'SELECT id FROM payments WHERE utr_number = ? AND status != "REJECTED"',
+      args: [cleanUtr]
+    });
+
+    if (existingUtr.rows.length > 0) {
+      return res.status(400).json({ success: false, message: 'This UTR / Transaction Reference Number has already been submitted.' });
     }
 
-    const parsedAmount = parseFloat(amount);
-    if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      fs.unlinkSync(req.file.path);
-      return res.status(400).json({ success: false, message: 'Valid payment amount is required.' });
+    // Get billing record ID
+    const billRes = await db.execute({
+      sql: 'SELECT id FROM billing WHERE user_id = ? AND month = ?',
+      args: [userId, month]
+    });
+    const billingId = billRes.rows[0] ? billRes.rows[0].id : null;
+
+    const screenshotPath = `/uploads/payments/${req.file.filename}`;
+
+    const insertRes = await db.execute({
+      sql: `
+        INSERT INTO payments (
+          user_id, billing_id, month, amount, payment_date, utr_number,
+          screenshot_path, note, status, payer_upi_id, upi_app
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', ?, ?)
+      `,
+      args: [
+        userId,
+        billingId,
+        month,
+        parseFloat(amount),
+        payment_date,
+        cleanUtr,
+        screenshotPath,
+        note ? note.trim() : null,
+        payer_upi_id ? payer_upi_id.trim() : null,
+        upi_app ? upi_app.trim() : null
+      ]
+    });
+
+    const newPaymentId = Number(insertRes.lastInsertRowid);
+
+    // Emit live event for Admin dashboard
+    try {
+      eventBus.emit('NEW_PAYMENT_SUBMITTED', {
+        id: newPaymentId,
+        user_id: userId,
+        user_name: req.user.name,
+        month,
+        amount: parseFloat(amount),
+        utr_number: cleanUtr,
+        created_at: new Date().toISOString()
+      });
+    } catch (e) {
+      console.error('eventBus emit error:', e);
     }
-
-    const targetMonth = month || new Date().toISOString().slice(0, 7);
-    const dateOfPayment = payment_date || new Date().toISOString().split('T')[0];
-
-    // Find or create billing record
-    let billing = db.prepare('SELECT id FROM billing WHERE user_id = ? AND month = ?').get(req.user.id, targetMonth);
-    let billingId = billing ? billing.id : null;
-
-    const relativePath = `/uploads/payments/${req.file.filename}`;
-
-    const stmt = db.prepare(`
-      INSERT INTO payments (
-        user_id, billing_id, month, amount, payment_date, utr_number,
-        screenshot_path, note, payer_upi_id, upi_app, status, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', CURRENT_TIMESTAMP)
-    `);
-
-    const info = stmt.run(
-      req.user.id,
-      billingId,
-      targetMonth,
-      parsedAmount,
-      dateOfPayment,
-      utr_number.trim(),
-      relativePath,
-      note ? note.trim() : null,
-      payer_upi_id ? payer_upi_id.trim() : null,
-      upi_app ? upi_app.trim() : 'UPI App'
-    );
 
     return res.status(201).json({
       success: true,
-      message: 'Payment proof submitted successfully! The Mess Manager will verify and update your balance shortly.',
-      payment_id: info.lastInsertRowid,
-      screenshot_url: relativePath
+      message: 'Payment proof submitted successfully! It is pending approval by the Mess Manager.',
+      payment_id: newPaymentId
     });
   } catch (err) {
-    console.error('Payment submission error:', err);
-    return res.status(500).json({ success: false, message: 'Failed to submit payment proof.' });
+    console.error('Submit payment error:', err);
+    return res.status(500).json({ success: false, message: 'Server error submitting payment proof.' });
   }
 });
 
-// User's submitted payments
-router.get('/my', verifyToken, (req, res) => {
+// Get student's own payment history
+router.get('/my-payments', verifyToken, async (req, res) => {
   try {
-    const payments = db.prepare(`
-      SELECT p.*, u.name as reviewer_name
-      FROM payments p
-      LEFT JOIN users u ON p.reviewed_by = u.id
-      WHERE p.user_id = ?
-      ORDER BY p.created_at DESC
-    `).all(req.user.id);
+    const userId = req.user.id;
 
-    return res.json({ success: true, payments });
+    const paymentsRes = await db.execute({
+      sql: 'SELECT * FROM payments WHERE user_id = ? ORDER BY id DESC',
+      args: [userId]
+    });
+
+    return res.json({ success: true, payments: paymentsRes.rows });
   } catch (err) {
-    return res.status(500).json({ success: false, message: 'Could not fetch payments.' });
+    console.error('Get my payments error:', err);
+    return res.status(500).json({ success: false, message: 'Error retrieving payment history.' });
   }
 });
 
-// Admin: pending payment proofs
-router.get('/pending', verifyToken, requireAdmin, (req, res) => {
+// =========================================================================
+// 2. ADMIN PAYMENT VERIFICATION & APPROVAL ROUTES
+// =========================================================================
+
+// List pending payment verifications (Admin)
+router.get('/admin/pending', verifyToken, verifyAdmin, async (req, res) => {
   try {
-    const payments = db.prepare(`
-      SELECT 
-        p.*,
-        u.name as user_name,
-        u.email as user_email,
-        u.room_no,
-        u.phone,
-        b.total_payable,
-        b.paid_amount,
-        (b.total_payable - b.paid_amount) as due_balance
-      FROM payments p
-      JOIN users u ON p.user_id = u.id
-      LEFT JOIN billing b ON p.billing_id = b.id
-      WHERE p.status = 'PENDING'
-      ORDER BY p.created_at ASC
-    `).all();
+    const pendingRes = await db.execute({
+      sql: `
+        SELECT p.*, u.name as student_name, u.room_no, u.phone, u.email
+        FROM payments p
+        JOIN users u ON p.user_id = u.id
+        WHERE p.status = 'PENDING'
+        ORDER BY p.id ASC
+      `,
+      args: []
+    });
 
-    return res.json({ success: true, count: payments.length, payments });
+    return res.json({ success: true, payments: pendingRes.rows });
   } catch (err) {
-    console.error('Error fetching pending payments:', err);
-    return res.status(500).json({ success: false, message: 'Failed to load pending payments.' });
+    console.error('Get pending payments error:', err);
+    return res.status(500).json({ success: false, message: 'Error retrieving pending payments.' });
   }
 });
 
-// Admin: all payments
-router.get('/all', verifyToken, requireAdmin, (req, res) => {
+// List all payment logs (Admin)
+router.get('/admin/all', verifyToken, verifyAdmin, async (req, res) => {
   try {
-    const status = req.query.status;
-    let query = `
-      SELECT 
-        p.*,
-        u.name as user_name,
-        u.email as user_email,
-        u.room_no,
-        u.phone,
-        r.name as reviewer_name
-      FROM payments p
-      JOIN users u ON p.user_id = u.id
-      LEFT JOIN users r ON p.reviewed_by = r.id
-    `;
-    const params = [];
+    const allRes = await db.execute({
+      sql: `
+        SELECT p.*, u.name as student_name, u.room_no, u.phone
+        FROM payments p
+        JOIN users u ON p.user_id = u.id
+        ORDER BY p.id DESC
+        LIMIT 200
+      `,
+      args: []
+    });
 
-    if (status) {
-      query += ` WHERE p.status = ?`;
-      params.push(status);
-    }
-    query += ` ORDER BY p.created_at DESC`;
-
-    const payments = db.prepare(query).all(...params);
-    return res.json({ success: true, payments });
+    return res.json({ success: true, payments: allRes.rows });
   } catch (err) {
-    return res.status(500).json({ success: false, message: 'Failed to fetch payments.' });
+    console.error('Get all payments error:', err);
+    return res.status(500).json({ success: false, message: 'Error retrieving payments list.' });
   }
 });
 
-// Admin: verify payment (approve or reject)
-router.post('/verify/:id', verifyToken, requireAdmin, (req, res) => {
+// Approve payment (Admin)
+router.post('/admin/approve/:id', verifyToken, verifyAdmin, async (req, res) => {
   try {
     const paymentId = req.params.id;
-    const { action, admin_note } = req.body; // action: 'APPROVE' or 'REJECT'
+    const { admin_note } = req.body;
 
-    if (!['APPROVE', 'REJECT'].includes(action)) {
-      return res.status(400).json({ success: false, message: 'Action must be APPROVE or REJECT.' });
-    }
+    const paymentRes = await db.execute({
+      sql: 'SELECT * FROM payments WHERE id = ?',
+      args: [paymentId]
+    });
+    const payment = paymentRes.rows[0];
 
-    const payment = db.prepare('SELECT * FROM payments WHERE id = ?').get(paymentId);
     if (!payment) {
       return res.status(404).json({ success: false, message: 'Payment record not found.' });
     }
 
-    if (payment.status !== 'PENDING') {
-      return res.status(400).json({ success: false, message: `Payment is already ${payment.status}.` });
+    if (payment.status === 'APPROVED') {
+      return res.status(400).json({ success: false, message: 'Payment is already approved.' });
     }
 
-    const trans = db.transaction(() => {
-      if (action === 'APPROVE') {
-        // Mark payment as APPROVED
-        db.prepare(`
-          UPDATE payments
-          SET status = 'APPROVED', admin_note = ?, reviewed_by = ?, reviewed_at = CURRENT_TIMESTAMP
-          WHERE id = ?
-        `).run(admin_note || 'Verified and approved by manager', req.user.id, paymentId);
-
-        // Update billing
-        let billing = db.prepare('SELECT * FROM billing WHERE user_id = ? AND month = ?').get(payment.user_id, payment.month);
-        const settings = db.prepare('SELECT * FROM mess_settings WHERE id = 1').get();
-
-        if (billing) {
-          const newPaidAmount = billing.paid_amount + payment.amount;
-          const isMasiPaid = (billing.masi_paid === 1 || newPaidAmount >= settings.masi_fee) ? 1 : 0;
-          let newStatus = 'PENDING';
-
-          if (newPaidAmount >= billing.total_payable) {
-            newStatus = 'PAID';
-          } else if (billing.fine_applied === 1) {
-            newStatus = 'OVERDUE';
-          }
-
-          db.prepare(`
-            UPDATE billing
-            SET paid_amount = ?, masi_paid = ?, status = ?, updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?
-          `).run(newPaidAmount, isMasiPaid, newStatus, billing.id);
-        }
-      } else {
-        // Reject payment
-        db.prepare(`
-          UPDATE payments
-          SET status = 'REJECTED', admin_note = ?, reviewed_by = ?, reviewed_at = CURRENT_TIMESTAMP
-          WHERE id = ?
-        `).run(admin_note || 'Payment proof verification rejected by manager', req.user.id, paymentId);
-      }
+    // Mark payment as APPROVED
+    await db.execute({
+      sql: `
+        UPDATE payments
+        SET status = 'APPROVED', admin_note = ?, reviewed_by = ?, reviewed_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `,
+      args: [admin_note ? admin_note.trim() : null, req.user.id, paymentId]
     });
 
-    trans();
+    // Fetch user info for logging
+    const userRes = await db.execute({
+      sql: 'SELECT name FROM users WHERE id = ?',
+      args: [payment.user_id]
+    });
+    const userName = userRes.rows[0] ? userRes.rows[0].name : 'Student';
 
-    // Recalculate target month to keep fine logic coherent
-    recalculateAllBills(payment.month);
+    // Credit paid_amount in billing table
+    const billingRes = await db.execute({
+      sql: 'SELECT paid_amount FROM billing WHERE user_id = ? AND month = ?',
+      args: [payment.user_id, payment.month]
+    });
+    const existingBill = billingRes.rows[0];
 
-    // Audit activity logging
-    const targetUser = db.prepare('SELECT name FROM users WHERE id = ?').get(payment.user_id);
-    const targetName = targetUser ? targetUser.name : `Student #${payment.user_id}`;
-    if (action === 'APPROVE') {
-      logAudit(
-        req.user.id,
-        req.user.name,
-        'PAYMENT_APPROVED',
-        payment.user_id,
-        targetName,
-        `Approved payment of ₹${payment.amount} for ${payment.month} (UTR: ${payment.utr_number}). Note: ${admin_note || 'Approved'}`
-      );
-    } else {
-      logAudit(
-        req.user.id,
-        req.user.name,
-        'PAYMENT_REJECTED',
-        payment.user_id,
-        targetName,
-        `Rejected payment proof of ₹${payment.amount} for ${payment.month} (UTR: ${payment.utr_number}). Note: ${admin_note || 'Rejected'}`
-      );
+    if (existingBill) {
+      const newPaidAmount = Number(existingBill.paid_amount) + Number(payment.amount);
+      await db.execute({
+        sql: 'UPDATE billing SET paid_amount = ? WHERE user_id = ? AND month = ?',
+        args: [newPaidAmount, payment.user_id, payment.month]
+      });
     }
 
-    return res.json({
-      success: true,
-      message: `Payment successfully ${action === 'APPROVE' ? 'approved' : 'rejected'}.`
-    });
+    // Recalculate bill status for student
+    await recalculateAllBills(payment.month);
+
+    // Write Audit Log
+    await logAudit(
+      req.user.id,
+      req.user.name,
+      'APPROVE_PAYMENT',
+      payment.user_id,
+      userName,
+      `Approved payment of ₹${payment.amount} for month ${payment.month} (UTR: ${payment.utr_number})`
+    );
+
+    return res.json({ success: true, message: `Payment of ₹${payment.amount} approved successfully for ${userName}.` });
   } catch (err) {
-    console.error('Payment verification error:', err);
-    return res.status(500).json({ success: false, message: 'Error processing verification.' });
+    console.error('Approve payment error:', err);
+    return res.status(500).json({ success: false, message: 'Error approving payment.' });
+  }
+});
+
+// Reject payment (Admin)
+router.post('/admin/reject/:id', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const paymentId = req.params.id;
+    const { admin_note } = req.body;
+
+    const paymentRes = await db.execute({
+      sql: 'SELECT * FROM payments WHERE id = ?',
+      args: [paymentId]
+    });
+    const payment = paymentRes.rows[0];
+
+    if (!payment) {
+      return res.status(404).json({ success: false, message: 'Payment record not found.' });
+    }
+
+    await db.execute({
+      sql: `
+        UPDATE payments
+        SET status = 'REJECTED', admin_note = ?, reviewed_by = ?, reviewed_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `,
+      args: [admin_note ? admin_note.trim() : 'Rejected by Mess Manager', req.user.id, paymentId]
+    });
+
+    const userRes = await db.execute({
+      sql: 'SELECT name FROM users WHERE id = ?',
+      args: [payment.user_id]
+    });
+    const userName = userRes.rows[0] ? userRes.rows[0].name : 'Student';
+
+    await recalculateAllBills(payment.month);
+
+    await logAudit(
+      req.user.id,
+      req.user.name,
+      'REJECT_PAYMENT',
+      payment.user_id,
+      userName,
+      `Rejected payment of ₹${payment.amount} for month ${payment.month} (UTR: ${payment.utr_number}). Reason: ${admin_note || 'N/A'}`
+    );
+
+    return res.json({ success: true, message: `Payment submission rejected for ${userName}.` });
+  } catch (err) {
+    console.error('Reject payment error:', err);
+    return res.status(500).json({ success: false, message: 'Error rejecting payment.' });
   }
 });
 
