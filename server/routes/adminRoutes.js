@@ -3,10 +3,9 @@ const router = express.Router();
 const { db } = require('../database');
 const { verifyToken, verifyAdmin } = require('../middleware/auth');
 
-// GET /api/admin/pending-students
+// Get pending registration requests
 router.get('/pending-students', verifyToken, verifyAdmin, async (req, res) => {
   try {
-    // Query matching both 'status = pending' and role filters
     const result = await db.execute({
       sql: "SELECT id, name, email, phone, room_no, created_at, status FROM users WHERE status = 'pending' ORDER BY id DESC",
       args: []
@@ -15,7 +14,7 @@ router.get('/pending-students', verifyToken, verifyAdmin, async (req, res) => {
     return res.json({ 
       success: true, 
       students: result.rows || [],
-      users: result.rows || [] // Duplicate key for fallback compatibility
+      users: result.rows || [] 
     });
   } catch (err) {
     console.error('Fetch pending students error:', err);
@@ -23,7 +22,7 @@ router.get('/pending-students', verifyToken, verifyAdmin, async (req, res) => {
   }
 });
 
-// POST /api/admin/approve-student/:id
+// Approve pending student
 router.post('/approve-student/:id', verifyToken, verifyAdmin, async (req, res) => {
   try {
     const userId = req.params.id;
@@ -40,7 +39,7 @@ router.post('/approve-student/:id', verifyToken, verifyAdmin, async (req, res) =
   }
 });
 
-// POST /api/admin/reject-student/:id
+// Reject pending student
 router.post('/reject-student/:id', verifyToken, verifyAdmin, async (req, res) => {
   try {
     const userId = req.params.id;
