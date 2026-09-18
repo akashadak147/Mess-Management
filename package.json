@@ -6,7 +6,7 @@
   "scripts": {
     "build": "node -e \"console.log('Build completed successfully')\"",
     "start": "node server.js",
-    "dev": "node --watch server.js",
+    "dev": "node --watch-path=server.js --watch-path=server server.js",
     "test": "node tests/test_admin_controls.js"
   },
   "allowScripts": {

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const { db, recalculateAllBills, logAudit } = require('../database');
+const eventBus = require('../events');
 const { verifyToken, requireAdmin, requireOwner } = require('../middleware/auth');
 
 // All endpoints in this router require a verified, active Administrator
@@ -116,6 +117,57 @@ router.get('/pending-users', (req, res) => {
   }
 });
 
+// Real-Time Admin Server-Sent Events Stream
+router.get('/live-stream', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders?.();
+
+  res.write(`data: ${JSON.stringify({ type: 'CONNECTED', adminId: req.user.id })}\n\n`);
+
+  const onNewStudent = (student) => {
+    try {
+      res.write(`data: ${JSON.stringify({ type: 'NEW_STUDENT_REGISTERED', student })}\n\n`);
+    } catch (e) {}
+  };
+
+  const onStatusChanged = (payload) => {
+    try {
+      res.write(`data: ${JSON.stringify({ type: 'STUDENT_STATUS_CHANGED', ...payload })}\n\n`);
+    } catch (e) {}
+  };
+
+  const onPaymentProof = (proof) => {
+    try {
+      res.write(`data: ${JSON.stringify({ type: 'NEW_PAYMENT_PROOF', proof })}\n\n`);
+    } catch (e) {}
+  };
+
+  const onPasswordReset = (reset) => {
+    try {
+      res.write(`data: ${JSON.stringify({ type: 'NEW_RESET_REQUEST', reset })}\n\n`);
+    } catch (e) {}
+  };
+
+  eventBus.on('NEW_STUDENT_REGISTERED', onNewStudent);
+  eventBus.on('STUDENT_STATUS_CHANGED', onStatusChanged);
+  eventBus.on('NEW_PAYMENT_PROOF', onPaymentProof);
+  eventBus.on('NEW_RESET_REQUEST', onPasswordReset);
+
+  const heartbeat = setInterval(() => {
+    try { res.write(': heartbeat\n\n'); } catch (e) {}
+  }, 15000);
+
+  req.on('close', () => {
+    clearInterval(heartbeat);
+    eventBus.off('NEW_STUDENT_REGISTERED', onNewStudent);
+    eventBus.off('STUDENT_STATUS_CHANGED', onStatusChanged);
+    eventBus.off('NEW_PAYMENT_PROOF', onPaymentProof);
+    eventBus.off('NEW_RESET_REQUEST', onPasswordReset);
+  });
+});
+
 router.post('/users/:id/approve', (req, res) => {
   try {
     const userId = req.params.id;
@@ -141,6 +193,21 @@ router.post('/users/:id/approve', (req, res) => {
       user.name,
       `Approved student registration for ${user.name} (${user.email})`
     );
+
+    // Broadcast instant approval event to waiting student and admin tabs
+    try {
+      eventBus.emit('STUDENT_STATUS_CHANGED', {
+        userId: user.id,
+        email: user.email,
+        phone: user.phone,
+        name: user.name,
+        status: 'active',
+        isApproved: true,
+        message: `Account approved! You can now log in as ${user.name}.`
+      });
+    } catch (e) {
+      console.error('eventBus emit error:', e);
+    }
 
     return res.json({
       success: true,
@@ -170,6 +237,21 @@ router.post('/users/:id/reject', (req, res) => {
       user.name,
       `Rejected student registration for ${user.name} (${user.email})`
     );
+
+    // Broadcast rejection event
+    try {
+      eventBus.emit('STUDENT_STATUS_CHANGED', {
+        userId: user.id,
+        email: user.email,
+        phone: user.phone,
+        name: user.name,
+        status: 'rejected',
+        isApproved: false,
+        message: 'Your registration was rejected by the Mess Manager.'
+      });
+    } catch (e) {
+      console.error('eventBus emit error:', e);
+    }
 
     return res.json({
       success: true,

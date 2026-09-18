@@ -3,17 +3,21 @@ const jwt = require('jsonwebtoken');
 const JWT_SECRET = process.env.JWT_SECRET || 'mess_management_super_secret_jwt_key_2026';
 
 function verifyToken(req, res, next) {
+  let token = null;
   const authHeader = req.headers['authorization'];
-  if (!authHeader) {
+  if (authHeader) {
+    const parts = authHeader.split(' ');
+    if (parts.length === 2 && parts[0] === 'Bearer') {
+      token = parts[1];
+    }
+  } else if (req.query && req.query.token) {
+    token = req.query.token;
+  }
+
+  if (!token) {
     return res.status(401).json({ success: false, message: 'Authentication required. Please log in.' });
   }
 
-  const parts = authHeader.split(' ');
-  if (parts.length !== 2 || parts[0] !== 'Bearer') {
-    return res.status(401).json({ success: false, message: 'Invalid authorization format.' });
-  }
-
-  const token = parts[1];
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     req.user = decoded;

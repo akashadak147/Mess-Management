@@ -52,6 +52,7 @@ async function apiRequest(endpoint, options = {}) {
 // Toast Notifications
 function showToast(message, type = 'success') {
   const container = document.getElementById('toast-container');
+  if (!container) return;
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
   const icon = type === 'success' ? '✅' : (type === 'error' ? '❌' : '⚠️');
@@ -59,9 +60,41 @@ function showToast(message, type = 'success') {
   container.appendChild(toast);
 
   setTimeout(() => {
-    toast.style.animation = 'slideToast 0.3s reverse forwards ease';
-    setTimeout(() => toast.remove(), 300);
+    if (toast.parentElement) {
+      toast.style.animation = 'slideToast 0.3s reverse forwards ease';
+      setTimeout(() => toast.remove(), 300);
+    }
   }, 3500);
+}
+
+function showToastWithAction(message, type = 'warning', actionLabel = 'Review', onAction = null) {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  const icon = type === 'success' ? '✅' : (type === 'error' ? '❌' : '🔔');
+  toast.innerHTML = `
+    <span>${icon}</span>
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.65rem; width: 100%;">
+      <span>${message}</span>
+      ${actionLabel ? `<button type="button" class="toast-action-btn">${actionLabel}</button>` : ''}
+    </div>
+  `;
+  if (actionLabel && onAction) {
+    const btn = toast.querySelector('.toast-action-btn');
+    btn?.addEventListener('click', () => {
+      try { onAction(); } catch (e) {}
+      toast.remove();
+    });
+  }
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    if (toast.parentElement) {
+      toast.style.animation = 'slideToast 0.3s reverse forwards ease';
+      setTimeout(() => toast.remove(), 300);
+    }
+  }, 6000);
 }
 
 // Format Currency
@@ -178,6 +211,16 @@ function renderNavLinks() {
     li.appendChild(btn);
     navList.appendChild(li);
   });
+
+  // Dedicated Logout Navigation Button
+  const logoutLi = document.createElement('li');
+  const logoutNavBtn = document.createElement('button');
+  logoutNavBtn.className = 'nav-item-btn nav-logout-btn';
+  logoutNavBtn.innerHTML = '🚪 Logout';
+  logoutNavBtn.title = 'Logout from account';
+  logoutNavBtn.addEventListener('click', logout);
+  logoutLi.appendChild(logoutNavBtn);
+  navList.appendChild(logoutLi);
 }
 
 function switchView(viewName) {
@@ -256,23 +299,131 @@ function playNotificationChime() {
 }
 
 // ----------------------------------------------------------------------------
-// Admin Real-Time Polling Engine (Every 4 Seconds)
+// Real-Time Inter-Tab Synchronization (BroadcastChannel)
+// ----------------------------------------------------------------------------
+const messSyncChannel = (typeof window !== 'undefined' && 'BroadcastChannel' in window)
+  ? new BroadcastChannel('mess_portal_sync')
+  : null;
+
+if (messSyncChannel) {
+  messSyncChannel.onmessage = (event) => {
+    const data = event.data;
+    if (!data) return;
+
+    if (data.type === 'NEW_STUDENT_REGISTERED') {
+      if (state.token && state.user && state.user.role === 'admin') {
+        playNotificationChime();
+        showToastWithAction(`🔔 New student registration: ${data.student?.name || 'Student'}!`, 'warning', 'Review & Approve', () => {
+          document.getElementById('admin-tab-pending-btn')?.click();
+        });
+        pulsePendingBadge();
+        loadAdminPendingUsers();
+        pollAdminUpdates();
+      }
+    } else if (data.type === 'STUDENT_APPROVED') {
+      // If student is on pending watcher
+      if (currentPendingIdentifier) {
+        handleStudentApprovalSuccess({
+          isApproved: true,
+          status: 'active',
+          name: data.name,
+          email: data.email
+        });
+      }
+      if (state.token && state.user && state.user.role === 'admin') {
+        loadAdminPendingUsers();
+        loadAdminUsersDirectory();
+        pollAdminUpdates();
+      }
+    } else if (data.type === 'STUDENT_REJECTED') {
+      if (currentPendingIdentifier) {
+        handleStudentRejection({
+          status: 'rejected',
+          name: data.name
+        });
+      }
+      if (state.token && state.user && state.user.role === 'admin') {
+        loadAdminPendingUsers();
+        pollAdminUpdates();
+      }
+    }
+  };
+}
+
+function pulsePendingBadge() {
+  const badge = document.getElementById('admin-pending-badge');
+  if (badge) {
+    badge.style.transition = 'transform 0.25s ease';
+    badge.style.transform = 'scale(1.5)';
+    setTimeout(() => { badge.style.transform = 'scale(1)'; }, 450);
+  }
+}
+
+// ----------------------------------------------------------------------------
+// Admin Real-Time Engine (SSE + Fast Polling Fallback)
 // ----------------------------------------------------------------------------
 let adminPollingTimer = null;
+let adminEventSource = null;
 let lastAdminCounts = {
   users: null,
   proofs: null,
   resets: null
 };
 
+function startAdminSSE() {
+  stopAdminSSE();
+  if (!state.token || !state.user || state.user.role !== 'admin') return;
+  try {
+    adminEventSource = new EventSource(`/api/admin/live-stream?token=${encodeURIComponent(state.token)}`);
+    adminEventSource.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        if (data.type === 'NEW_STUDENT_REGISTERED') {
+          playNotificationChime();
+          showToastWithAction(`🔔 New student registration: ${data.student?.name || 'Student'}!`, 'warning', 'Review & Approve', () => {
+            document.getElementById('admin-tab-pending-btn')?.click();
+          });
+          pulsePendingBadge();
+          loadAdminPendingUsers();
+          pollAdminUpdates();
+        } else if (data.type === 'STUDENT_STATUS_CHANGED') {
+          loadAdminPendingUsers();
+          loadAdminUsersDirectory();
+          pollAdminUpdates();
+        } else if (data.type === 'NEW_PAYMENT_PROOF') {
+          playNotificationChime();
+          showToast(`📥 New payment proof submitted!`, 'info');
+          loadAdminPendingProofs();
+          pollAdminUpdates();
+        } else if (data.type === 'NEW_RESET_REQUEST') {
+          playNotificationChime();
+          showToast(`🔑 New password reset request!`, 'info');
+          loadPasswordResetRequests();
+          pollAdminUpdates();
+        }
+      } catch (err) {}
+    };
+    adminEventSource.onerror = () => {};
+  } catch (err) {}
+}
+
+function stopAdminSSE() {
+  if (adminEventSource) {
+    adminEventSource.close();
+    adminEventSource = null;
+  }
+}
+
 function startAdminPolling() {
   stopAdminPolling();
   lastAdminCounts = { users: null, proofs: null, resets: null };
+  startAdminSSE();
   pollAdminUpdates();
-  adminPollingTimer = setInterval(pollAdminUpdates, 4000);
+  adminPollingTimer = setInterval(pollAdminUpdates, 2500);
 }
 
 function stopAdminPolling() {
+  stopAdminSSE();
   if (adminPollingTimer) {
     clearInterval(adminPollingTimer);
     adminPollingTimer = null;
@@ -298,28 +449,15 @@ async function pollAdminUpdates() {
 
     // Compare with baseline to fire real-time alerts
     if (lastAdminCounts.users !== null) {
-      // 1. New Student Registration pending approval
       if (curUsers > lastAdminCounts.users) {
         const diff = curUsers - lastAdminCounts.users;
         playNotificationChime();
-        showToast(`🔔 ${diff} new student registration pending approval!`, 'warning');
-
-        // Pulse the pending badge
-        const badge = document.getElementById('admin-pending-badge');
-        if (badge) {
-          badge.style.transition = 'transform 0.25s ease';
-          badge.style.transform = 'scale(1.45)';
-          setTimeout(() => { badge.style.transform = 'scale(1)'; }, 450);
-        }
-
-        // If currently viewing pending tab, re-render immediately
-        const pendingPane = document.getElementById('admin-tab-content-pending');
-        if (pendingPane && pendingPane.style.display !== 'none') {
-          loadAdminPendingUsers();
-        }
+        showToastWithAction(`🔔 ${diff} new student registration pending approval!`, 'warning', 'Review & Approve', () => {
+          document.getElementById('admin-tab-pending-btn')?.click();
+        });
+        pulsePendingBadge();
       }
 
-      // 2. New Payment Proof submitted
       if (curProofs > lastAdminCounts.proofs) {
         const diff = curProofs - lastAdminCounts.proofs;
         playNotificationChime();
@@ -330,7 +468,6 @@ async function pollAdminUpdates() {
         }
       }
 
-      // 3. New Password Reset Request submitted
       if (curResets > lastAdminCounts.resets) {
         const diff = curResets - lastAdminCounts.resets;
         playNotificationChime();
@@ -342,19 +479,51 @@ async function pollAdminUpdates() {
       }
     }
 
+    // Always keep pending table fresh if count changed or pending tab is visible
+    const pendingPane = document.getElementById('admin-tab-content-pending');
+    if ((lastAdminCounts.users !== null && curUsers !== lastAdminCounts.users) || (pendingPane && pendingPane.style.display !== 'none')) {
+      loadAdminPendingUsers();
+    }
+
     lastAdminCounts.users = curUsers;
     lastAdminCounts.proofs = curProofs;
     lastAdminCounts.resets = curResets;
-  } catch (err) {
-    // Network retry on next interval
-  }
+  } catch (err) {}
 }
 
 // ----------------------------------------------------------------------------
-// Student Live Approval Status Watcher (Real-Time Auto-Polling)
+// Student Live Approval Status Watcher (SSE Stream + Polling Fallback)
 // ----------------------------------------------------------------------------
 let studentApprovalPollTimer = null;
+let studentEventSource = null;
 let currentPendingIdentifier = null;
+
+function startStudentSSE(identifier) {
+  stopStudentSSE();
+  try {
+    studentEventSource = new EventSource(`/api/auth/live-approval-stream?identifier=${encodeURIComponent(identifier)}`);
+    studentEventSource.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        if (data.isApproved || data.status === 'active') {
+          stopStudentSSE();
+          handleStudentApprovalSuccess(data);
+        } else if (data.status === 'rejected') {
+          stopStudentSSE();
+          handleStudentRejection(data);
+        }
+      } catch (err) {}
+    };
+    studentEventSource.onerror = () => {};
+  } catch (err) {}
+}
+
+function stopStudentSSE() {
+  if (studentEventSource) {
+    studentEventSource.close();
+    studentEventSource = null;
+  }
+}
 
 function showStudentPendingCard(identifier, studentName = '') {
   stopStudentPendingPolling();
@@ -371,7 +540,7 @@ function showStudentPendingCard(identifier, studentName = '') {
       <h4 style="color: #fbbf24; margin: 0 0 0.35rem; font-size: 1.05rem; font-weight: 700;">Account Pending Mess Manager Approval</h4>
       <p style="font-size: 0.83rem; color: var(--text-secondary); margin: 0 0 0.75rem; line-height: 1.45;">
         Registration submitted for ${displayTarget}.<br>
-        The Mess Manager has been alerted. As soon as your account is approved, you can sign in below.
+        The Mess Manager has been alerted instantly. As soon as approved, you will be signed in.
       </p>
       <div style="display: flex; gap: 0.6rem; justify-content: center; align-items: center; flex-wrap: wrap;">
         <button type="button" id="btn-manual-check-approval" class="btn btn-sm btn-outline" style="border-color: #f59e0b; color: #fbbf24; font-size: 0.8rem; padding: 0.35rem 0.85rem;">
@@ -379,7 +548,7 @@ function showStudentPendingCard(identifier, studentName = '') {
         </button>
       </div>
       <div id="student-approval-poll-status" style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.5rem;">
-        ⚡ Auto-checking approval status in real-time...
+        ⚡ Instant real-time stream active...
       </div>
     </div>
   `;
@@ -389,16 +558,80 @@ function showStudentPendingCard(identifier, studentName = '') {
     checkStudentApprovalStatus(true);
   });
 
-  // Start polling every 3 seconds
+  // Start real-time SSE stream
+  startStudentSSE(identifier);
+
+  // Secondary polling fallback every 2.5 seconds
   studentApprovalPollTimer = setInterval(() => {
     checkStudentApprovalStatus(false);
-  }, 3000);
+  }, 2500);
 }
 
 function stopStudentPendingPolling() {
+  stopStudentSSE();
   if (studentApprovalPollTimer) {
     clearInterval(studentApprovalPollTimer);
     studentApprovalPollTimer = null;
+  }
+}
+
+function handleStudentApprovalSuccess(res) {
+  stopStudentPendingPolling();
+  playNotificationChime();
+
+  const studentName = res.name || state.pendingCredentials?.name || 'Student';
+  const studentEmail = res.email || state.pendingCredentials?.email || currentPendingIdentifier;
+  const studentPassword = state.pendingCredentials?.password || '';
+
+  const card = document.getElementById('student-approval-status-card');
+  if (card) {
+    card.innerHTML = `
+      <div style="background: rgba(16, 185, 129, 0.15); border: 1.5px solid #10b981; border-radius: var(--radius-md); padding: 1.25rem; text-align: center; animation: shakeError 0.3s ease;">
+        <div style="font-size: 2.3rem; margin-bottom: 0.25rem;">🎉</div>
+        <h4 style="color: #34d399; margin: 0 0 0.35rem; font-size: 1.1rem; font-weight: 700;">Account Approved!</h4>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0 0 0.85rem; line-height: 1.45;">
+          Welcome, <strong>${escapeHtml(studentName)}</strong>! Your registration was approved by the Mess Manager. Your credentials have been entered below.
+        </p>
+        <button type="button" id="btn-quick-signin" class="btn btn-primary" style="background: #10b981; border-color: #10b981; font-weight: 700; padding: 0.6rem 1.4rem; font-size: 0.95rem; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35);">
+          🚀 Click Here to Sign In Now
+        </button>
+      </div>
+    `;
+
+    document.getElementById('btn-quick-signin')?.addEventListener('click', () => {
+      document.getElementById('login-submit-btn')?.click();
+    });
+  }
+
+  showToast(`🎉 Account approved! You can now sign in as ${studentName}.`, 'success');
+
+  // Pre-fill email and password
+  const emailInput = document.getElementById('login-email');
+  const passwordInput = document.getElementById('login-password');
+  if (emailInput) emailInput.value = studentEmail;
+  if (passwordInput && studentPassword) {
+    passwordInput.value = studentPassword;
+  }
+
+  // Focus quick sign in button or password input
+  const quickBtn = document.getElementById('btn-quick-signin');
+  if (quickBtn) quickBtn.focus();
+  else if (passwordInput) passwordInput.focus();
+}
+
+function handleStudentRejection(res) {
+  stopStudentPendingPolling();
+  const card = document.getElementById('student-approval-status-card');
+  if (card) {
+    card.innerHTML = `
+      <div style="background: rgba(239, 68, 68, 0.15); border: 1.5px solid #ef4444; border-radius: var(--radius-md); padding: 1rem; text-align: center;">
+        <div style="font-size: 1.8rem; margin-bottom: 0.3rem;">❌</div>
+        <h4 style="color: #f87171; margin: 0 0 0.35rem; font-size: 1rem; font-weight: 700;">Registration Rejected</h4>
+        <p style="font-size: 0.82rem; color: var(--text-secondary); margin: 0;">
+          Your registration request was rejected by the Mess Manager. Please contact administration.
+        </p>
+      </div>
+    `;
   }
 }
 
@@ -412,60 +645,45 @@ async function checkStudentApprovalStatus(isManual = false) {
     if (!res || !res.success) return;
 
     if (res.isApproved) {
-      // Approved!
-      stopStudentPendingPolling();
-      playNotificationChime();
-
-      const card = document.getElementById('student-approval-status-card');
-      if (card) {
-        card.innerHTML = `
-          <div style="background: rgba(16, 185, 129, 0.15); border: 1.5px solid #10b981; border-radius: var(--radius-md); padding: 1.15rem; text-align: center; animation: shakeError 0.3s ease;">
-            <div style="font-size: 2.2rem; margin-bottom: 0.25rem;">🎉</div>
-            <h4 style="color: #34d399; margin: 0 0 0.35rem; font-size: 1.05rem; font-weight: 700;">Account Approved!</h4>
-            <p style="font-size: 0.84rem; color: var(--text-secondary); margin: 0; line-height: 1.45;">
-              Welcome, <strong>${escapeHtml(res.name || 'Student')}</strong>! Your registration was approved by the Mess Manager. Please enter your password below to sign in.
-            </p>
-          </div>
-        `;
-      }
-
-      showToast(`🎉 Account approved! You can now sign in as ${res.name || 'Student'}.`, 'success');
-
-      // Pre-fill email and focus password
-      const emailInput = document.getElementById('login-email');
-      const passwordInput = document.getElementById('login-password');
-      if (emailInput) emailInput.value = res.email || currentPendingIdentifier;
-      if (passwordInput) {
-        passwordInput.value = '';
-        passwordInput.focus();
-      }
+      handleStudentApprovalSuccess(res);
     } else if (res.status === 'rejected') {
-      stopStudentPendingPolling();
-      const card = document.getElementById('student-approval-status-card');
-      if (card) {
-        card.innerHTML = `
-          <div style="background: rgba(239, 68, 68, 0.15); border: 1.5px solid #ef4444; border-radius: var(--radius-md); padding: 1rem; text-align: center;">
-            <div style="font-size: 1.8rem; margin-bottom: 0.3rem;">❌</div>
-            <h4 style="color: #f87171; margin: 0 0 0.35rem; font-size: 1rem; font-weight: 700;">Registration Rejected</h4>
-            <p style="font-size: 0.82rem; color: var(--text-secondary); margin: 0;">
-              Your registration request was rejected by the Mess Manager. Please contact administration.
-            </p>
-          </div>
-        `;
-      }
+      handleStudentRejection(res);
     } else {
       if (isManual) {
         showToast('Account is still awaiting approval by the Mess Manager.', 'info');
-        if (statusHint) statusHint.textContent = '⏳ Still awaiting approval. Auto-checking continues...';
+        if (statusHint) statusHint.textContent = '⏳ Still awaiting approval. Real-time stream active...';
       }
     }
-  } catch (err) {
-    // Network retry
+  } catch (err) {}
+}
+
+function setupPasswordToggles() {
+  const toggleLogin = document.getElementById('toggle-login-password');
+  const inputLogin = document.getElementById('login-password');
+  if (toggleLogin && inputLogin) {
+    toggleLogin.onclick = (e) => {
+      e.preventDefault();
+      const isPwd = inputLogin.type === 'password';
+      inputLogin.type = isPwd ? 'text' : 'password';
+      toggleLogin.textContent = isPwd ? '🙈' : '👁️';
+    };
+  }
+
+  const toggleReg = document.getElementById('toggle-reg-password');
+  const inputReg = document.getElementById('reg-password');
+  if (toggleReg && inputReg) {
+    toggleReg.onclick = (e) => {
+      e.preventDefault();
+      const isPwd = inputReg.type === 'password';
+      inputReg.type = isPwd ? 'text' : 'password';
+      toggleReg.textContent = isPwd ? '🙈' : '👁️';
+    };
   }
 }
 
 // Authentication Handlers (Direct Student & Admin Portals)
 function setupAuthEvents() {
+  setupPasswordToggles();
   const tabLogin = document.getElementById('tab-login-btn');
   const tabAdminLogin = document.getElementById('tab-admin-login-btn');
   const tabReg = document.getElementById('tab-register-btn');
@@ -678,6 +896,7 @@ function setupAuthEvents() {
     const rawPhone = document.getElementById('reg-phone').value.trim();
     const phone = rawPhone.replace(/\D/g, '').slice(-10);
     const password = document.getElementById('reg-password').value;
+    const cleanPassword = password.trim();
     const btn = document.getElementById('register-submit-btn');
 
     if (!name || !email || !password) {
@@ -685,7 +904,7 @@ function setupAuthEvents() {
       return;
     }
 
-    if (password.length < 6) {
+    if (cleanPassword.length < 6) {
       showToast('Password must be at least 6 characters long.', 'error');
       return;
     }
@@ -701,18 +920,33 @@ function setupAuthEvents() {
           email,
           room_no,
           phone,
-          password
+          password: cleanPassword
         })
       });
 
       if (res && res.success) {
         if (res.pendingApproval) {
+          state.pendingCredentials = {
+            name,
+            email,
+            password: cleanPassword
+          };
+
+          if (messSyncChannel) {
+            try {
+              messSyncChannel.postMessage({
+                type: 'NEW_STUDENT_REGISTERED',
+                student: res.user || { name, email, phone, room_no }
+              });
+            } catch (err) {}
+          }
+
           regForm.reset();
           tabLogin.click();
           const emailInput = document.getElementById('login-email');
           const passwordInput = document.getElementById('login-password');
           if (emailInput) emailInput.value = email;
-          if (passwordInput) passwordInput.value = '';
+          if (passwordInput) passwordInput.value = cleanPassword;
 
           // Show live approval watcher card and start auto-checking
           showStudentPendingCard(email, name);
@@ -895,6 +1129,7 @@ function logout() {
   switchView('auth');
   showToast('Logged out successfully', 'success');
 }
+window.logout = logout;
 
 // Real-Time Corner Headcount Widget Logic (Visible to All Users & Admins)
 async function loadGlobalCornerHeadcount() {
@@ -2045,6 +2280,15 @@ window.approveStudent = async function(userId, encodedName) {
     });
     if (res.success) {
       showToast(res.message, 'success');
+      if (messSyncChannel) {
+        try {
+          messSyncChannel.postMessage({
+            type: 'STUDENT_APPROVED',
+            userId: userId,
+            name: name
+          });
+        } catch (e) {}
+      }
       loadAdminPendingUsers();
       loadAdminUsersDirectory();
       loadAdminDashboard();
@@ -2068,6 +2312,15 @@ window.rejectStudent = async function(userId, encodedName) {
     });
     if (res.success) {
       showToast(res.message, 'warning');
+      if (messSyncChannel) {
+        try {
+          messSyncChannel.postMessage({
+            type: 'STUDENT_REJECTED',
+            userId: userId,
+            name: name
+          });
+        } catch (e) {}
+      }
       loadAdminPendingUsers();
       loadAdminUsersDirectory();
       loadAdminDashboard();
@@ -2865,6 +3118,11 @@ function setupAdminEvents() {
         if (t === 'pending') loadAdminPendingUsers();
       });
     }
+  });
+
+  // Click on pending student signups stat card switches to Pending tab
+  document.getElementById('admin-card-pending-users')?.addEventListener('click', () => {
+    document.getElementById('admin-tab-pending-btn')?.click();
   });
 
   // Date picker in meals tab

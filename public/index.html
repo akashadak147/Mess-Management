@@ -45,8 +45,9 @@
             <span class="user-name" id="nav-user-name">User</span>
             <span class="user-role-tag" id="nav-user-role">Student</span>
           </div>
-          <button class="btn-icon" id="logout-btn" title="Logout" style="margin-left: 0.35rem;">
-            🚪
+          <button class="logout-btn-pill" id="logout-btn" title="Logout from account">
+            <span>🚪</span>
+            <span class="logout-text">Logout</span>
           </button>
         </div>
       </div>
@@ -114,7 +115,10 @@
               <label class="form-label" for="login-password" style="margin-bottom: 0;">Password</label>
               <a href="javascript:void(0)" id="forgot-password-link" style="font-size: 0.8rem; color: var(--primary); font-weight: 600; text-decoration: none;">Forgot Password?</a>
             </div>
-            <input type="password" id="login-password" class="form-control" placeholder="••••••••" required autocomplete="current-password">
+            <div class="password-input-wrapper">
+              <input type="password" id="login-password" class="form-control" placeholder="••••••••" required autocomplete="current-password">
+              <button type="button" class="btn-toggle-password" id="toggle-login-password" title="Show/hide password">👁️</button>
+            </div>
           </div>
           <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem; padding: 0.75rem; font-size: 0.95rem; font-weight: 700;"
             id="login-submit-btn">
@@ -154,7 +158,10 @@
 
           <div class="form-group">
             <label class="form-label" for="reg-password">Create Password</label>
-            <input type="password" id="reg-password" class="form-control" placeholder="Min 6 characters" required>
+            <div class="password-input-wrapper">
+              <input type="password" id="reg-password" class="form-control" placeholder="Min 6 characters" required>
+              <button type="button" class="btn-toggle-password" id="toggle-reg-password" title="Show/hide password">👁️</button>
+            </div>
           </div>
           <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem; padding: 0.75rem; font-size: 0.95rem; font-weight: 700;"
             id="register-submit-btn">
@@ -232,6 +239,17 @@
          VIEW 2: USER / STUDENT DASHBOARD
          ========================================================================= -->
     <section id="view-user" style="display: none;">
+
+      <!-- Student Top Header with Quick Logout -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.15rem; flex-wrap: wrap; gap: 0.75rem;">
+        <div>
+          <h2 style="margin: 0; font-size: 1.35rem; font-weight: 700;">🍽️ Student Meal & Billing Portal</h2>
+          <p style="margin: 0.2rem 0 0; font-size: 0.8rem; color: var(--text-secondary);">Track daily meal attendance, review your monthly fees, and submit payment proofs.</p>
+        </div>
+        <button class="btn btn-outline btn-sm dashboard-logout-btn" onclick="logout()" style="border-color: rgba(239, 68, 68, 0.4); color: #f87171; font-weight: 600;">
+          🚪 Logout
+        </button>
+      </div>
 
       <!-- Today's Market Duty & Food Routine Banner -->
       <div class="glass-panel"
@@ -757,6 +775,7 @@
         <div class="filter-group">
           <button class="btn btn-outline btn-sm" id="admin-refresh-stats-btn">🔄 Refresh Data</button>
           <button class="btn btn-primary btn-sm" id="admin-recalc-btn">⚡ Re-calculate All Bills</button>
+          <button class="btn btn-outline btn-sm dashboard-logout-btn" onclick="logout()" style="border-color: rgba(239, 68, 68, 0.4); color: #f87171; font-weight: 600;">🚪 Logout</button>
         </div>
       </div>
 
@@ -821,13 +840,13 @@
           <div class="stat-subtext">Awaiting manager verification</div>
         </div>
 
-        <div class="glass-panel stat-card" style="--stat-glow: rgba(245, 158, 11, 0.35);">
+        <div class="glass-panel stat-card" id="admin-card-pending-users" style="--stat-glow: rgba(245, 158, 11, 0.35); cursor: pointer;" title="Click to view and approve pending students">
           <div class="stat-header">
             <span class="stat-title">Pending Student Signups</span>
             <div class="stat-icon" style="color: #fbbf24;">🔔</div>
           </div>
           <div class="stat-value" id="admin-stat-pending-users" style="color: #fbbf24;">0</div>
-          <div class="stat-subtext">Requires Admin Approval</div>
+          <div class="stat-subtext" style="color: #fbbf24; font-weight: 600;">Click to Review & Approve ➔</div>
         </div>
 
         <div class="glass-panel stat-card" style="--stat-glow: var(--danger-glow);">

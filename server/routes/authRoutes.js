@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const eventBus = require('../events');
 const { db, recalculateAllBills } = require('../database');
 const { verifyToken, JWT_SECRET } = require('../middleware/auth');
 
@@ -126,8 +127,9 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ success: false, message: 'An account with this email already exists.' });
     }
 
+    const cleanPassword = password.trim();
     const salt = bcrypt.genSaltSync(10);
-    const password_hash = bcrypt.hashSync(password, salt);
+    const password_hash = bcrypt.hashSync(cleanPassword, salt);
 
     const stmt = db.prepare(`
       INSERT INTO users (name, email, phone, room_no, password_hash, role, status)
@@ -137,19 +139,29 @@ router.post('/register', async (req, res) => {
     const info = stmt.run(name.trim(), trimmedEmail, cleanPhone, room_no ? room_no.trim() : null, password_hash);
     const newUserId = info.lastInsertRowid;
 
+    const registeredUser = {
+      id: newUserId,
+      name: name.trim(),
+      email: trimmedEmail,
+      phone: cleanPhone,
+      room_no: room_no ? room_no.trim() : null,
+      role: 'user',
+      status: 'pending',
+      created_at: new Date().toISOString()
+    };
+
+    // Broadcast real-time event to Admin Portal
+    try {
+      eventBus.emit('NEW_STUDENT_REGISTERED', registeredUser);
+    } catch (e) {
+      console.error('eventBus emit error:', e);
+    }
+
     return res.status(201).json({
       success: true,
       pendingApproval: true,
       message: 'Registration submitted successfully! Your account is pending approval by the Mess Manager. Once approved, you will be able to log in with your email and password.',
-      user: {
-        id: newUserId,
-        name: name.trim(),
-        email: trimmedEmail,
-        phone: cleanPhone,
-        room_no: room_no ? room_no.trim() : null,
-        role: 'user',
-        status: 'pending'
-      }
+      user: registeredUser
     });
   } catch (err) {
     console.error('Registration error:', err);
@@ -165,20 +177,29 @@ router.get('/check-status', (req, res) => {
       return res.status(400).json({ success: false, message: 'Email or mobile number is required.' });
     }
 
-    const cleanPhone = normalizePhone(rawIdentifier);
     let user = null;
-    if (cleanPhone && cleanPhone.length === 10) {
-      user = db.prepare(`
-        SELECT id, name, email, phone, role, status
-        FROM users
-        WHERE LOWER(email) = LOWER(?) OR phone LIKE ? OR phone LIKE ?
-      `).get(rawIdentifier, `%${cleanPhone}%`, cleanPhone);
-    } else {
+    if (rawIdentifier.includes('@')) {
       user = db.prepare(`
         SELECT id, name, email, phone, role, status
         FROM users
         WHERE LOWER(email) = LOWER(?)
       `).get(rawIdentifier);
+    } else {
+      const cleanPhone = normalizePhone(rawIdentifier);
+      if (cleanPhone && cleanPhone.length === 10) {
+        user = db.prepare(`
+          SELECT id, name, email, phone, role, status
+          FROM users
+          WHERE phone = ? OR phone LIKE ? OR phone LIKE ?
+        `).get(cleanPhone, `%${cleanPhone}%`, `+91${cleanPhone}`);
+      }
+      if (!user) {
+        user = db.prepare(`
+          SELECT id, name, email, phone, role, status
+          FROM users
+          WHERE LOWER(email) = LOWER(?)
+        `).get(rawIdentifier);
+      }
     }
 
     if (!user) {
@@ -206,6 +227,40 @@ router.get('/check-status', (req, res) => {
   }
 });
 
+// Real-time Server-Sent Events stream for waiting students
+router.get('/live-approval-stream', (req, res) => {
+  const identifier = (req.query.identifier || '').trim().toLowerCase();
+  if (!identifier) {
+    return res.status(400).end('Identifier required');
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders?.();
+
+  res.write(`data: ${JSON.stringify({ type: 'CONNECTED' })}\n\n`);
+
+  const onStatusChanged = (data) => {
+    const targetEmail = (data.email || '').toLowerCase();
+    const targetPhone = data.phone || '';
+    if (targetEmail === identifier || targetPhone === identifier || identifier.includes(targetEmail)) {
+      res.write(`data: ${JSON.stringify(data)}\n\n`);
+    }
+  };
+
+  eventBus.on('STUDENT_STATUS_CHANGED', onStatusChanged);
+
+  const heartbeat = setInterval(() => {
+    try { res.write(': heartbeat\n\n'); } catch (e) {}
+  }, 15000);
+
+  req.on('close', () => {
+    clearInterval(heartbeat);
+    eventBus.off('STUDENT_STATUS_CHANGED', onStatusChanged);
+  });
+});
+
 // Login (Supports Email OR Mobile Number)
 router.post('/login', async (req, res) => {
   try {
@@ -216,29 +271,41 @@ router.post('/login', async (req, res) => {
     }
 
     const rawIdentifier = email.trim();
-    const cleanPhone = normalizePhone(rawIdentifier);
 
     let user = null;
-    if (cleanPhone && cleanPhone.length === 10) {
-      user = db.prepare(`
-        SELECT * FROM users
-        WHERE LOWER(email) = LOWER(?) OR phone LIKE ? OR phone LIKE ?
-      `).get(rawIdentifier, `%${cleanPhone}%`, cleanPhone);
-    } else {
+    if (rawIdentifier.includes('@')) {
+      // Direct Email lookup
       user = db.prepare(`
         SELECT * FROM users
         WHERE LOWER(email) = LOWER(?)
       `).get(rawIdentifier);
+    } else {
+      // Mobile Number lookup
+      const cleanPhone = normalizePhone(rawIdentifier);
+      if (cleanPhone && cleanPhone.length === 10) {
+        user = db.prepare(`
+          SELECT * FROM users
+          WHERE phone = ? OR phone LIKE ? OR phone LIKE ?
+        `).get(cleanPhone, `%${cleanPhone}%`, `+91${cleanPhone}`);
+      }
+      if (!user) {
+        user = db.prepare(`
+          SELECT * FROM users
+          WHERE LOWER(email) = LOWER(?)
+        `).get(rawIdentifier);
+      }
     }
 
     if (!user) {
       return res.status(401).json({ success: false, message: 'Incorrect email/mobile number or password. Please check your credentials.' });
     }
 
-    let isMatch = bcrypt.compareSync(password, user.password_hash);
-    if (!isMatch && password.trim() !== password) {
-      // Fallback for mobile keyboard autofill space
-      isMatch = bcrypt.compareSync(password.trim(), user.password_hash);
+    // Password comparison with whitespace tolerance
+    const cleanPassword = password.trim();
+    let isMatch = bcrypt.compareSync(cleanPassword, user.password_hash);
+    if (!isMatch && password !== cleanPassword) {
+      // Check untrimmed in case legacy hash was stored with trailing space
+      isMatch = bcrypt.compareSync(password, user.password_hash);
     }
 
     if (!isMatch) {

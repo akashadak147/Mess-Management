@@ -267,19 +267,7 @@ function seedInitialData() {
   const ownerHash = bcrypt.hashSync('Akash@147', salt);
   const asstHash = bcrypt.hashSync('1@bpg1947', salt);
 
-  // 1. Remove previous demo data and dummy students (clean slate)
-  db.exec(`
-    PRAGMA foreign_keys = OFF;
-    DELETE FROM payments;
-    DELETE FROM billing;
-    DELETE FROM meals;
-    DELETE FROM audit_logs;
-    DELETE FROM users WHERE email = 'admin@mess.com';
-    DELETE FROM users WHERE role = 'user';
-    PRAGMA foreign_keys = ON;
-  `);
-
-  // 2. Ensure Primary Website Owner: Akash Adak
+  // 1. Ensure Primary Website Owner: Akash Adak
   const ownerCheck = db.prepare("SELECT id FROM users WHERE email = ?").get('akashadak162006@gmail.com');
   if (!ownerCheck) {
     db.prepare(`
@@ -292,16 +280,15 @@ function seedInitialData() {
       SET name = 'Akash Adak',
           phone = '+91 8927971674',
           room_no = 'Owner Office',
-          password_hash = ?,
           role = 'admin',
           is_owner = 1,
           permissions = 'all',
           status = 'active'
       WHERE email = 'akashadak162006@gmail.com'
-    `).run(ownerHash);
+    `).run();
   }
 
-  // 3. Ensure Assistant Manager: Bhabani Prasad Ghosh
+  // 2. Ensure Assistant Manager: Bhabani Prasad Ghosh
   const asstCheck = db.prepare("SELECT id FROM users WHERE email = ?").get('adakakash2006@gmail.com');
   if (!asstCheck) {
     db.prepare(`
@@ -314,28 +301,12 @@ function seedInitialData() {
       SET name = 'Bhabani Prasad Ghosh',
           phone = '+91 8927971674',
           room_no = 'Manager Office',
-          password_hash = ?,
           role = 'admin',
           is_owner = 0,
           permissions = 'all',
           status = 'active'
       WHERE email = 'adakakash2006@gmail.com'
-    `).run(asstHash);
-  }
-
-  // Remove any stale test admins that are neither Akash nor Bhabani
-  db.prepare(`
-    DELETE FROM users
-    WHERE role = 'admin' AND email NOT IN ('akashadak162006@gmail.com', 'adakakash2006@gmail.com')
-  `).run();
-
-  // Log system initialization audit entry
-  const owner = db.prepare("SELECT id, name FROM users WHERE email = 'akashadak162006@gmail.com'").get();
-  if (owner) {
-    db.prepare(`
-      INSERT INTO audit_logs (admin_id, admin_name, action, target_user_id, target_user_name, details)
-      VALUES (?, ?, 'SYSTEM_INIT', NULL, NULL, 'Portal initialized with Owner: Akash Adak (akashadak162006@gmail.com) and Assistant Manager: Bhabani Prasad Ghosh (adakakash2006@gmail.com). Zero students roster ready.')
-    `).run(owner.id, owner.name);
+    `).run();
   }
 }
 
