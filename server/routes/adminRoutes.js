@@ -3,56 +3,88 @@ const router = express.Router();
 const { db } = require('../database');
 const { verifyToken, verifyAdmin } = require('../middleware/auth');
 
-// Get pending registration requests
+// Get Pending Students Queue
 router.get('/pending-students', verifyToken, verifyAdmin, async (req, res) => {
   try {
     const result = await db.execute({
-      sql: "SELECT id, name, email, phone, room_no, created_at, status FROM users WHERE status = 'pending' ORDER BY id DESC",
+      sql: "SELECT id, name, email, room_no, phone, created_at FROM users WHERE status = 'pending' AND role != 'admin'",
       args: []
     });
-
-    return res.json({ 
-      success: true, 
-      students: result.rows || [],
-      users: result.rows || [] 
-    });
+    res.json({ success: true, students: result.rows });
   } catch (err) {
-    console.error('Fetch pending students error:', err);
-    return res.status(500).json({ success: false, message: 'Error retrieving pending registration requests.' });
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
-// Approve pending student
+// Approve Student Registration
 router.post('/approve-student/:id', verifyToken, verifyAdmin, async (req, res) => {
   try {
     const userId = req.params.id;
-
     await db.execute({
       sql: "UPDATE users SET status = 'active' WHERE id = ?",
       args: [userId]
     });
-
-    return res.json({ success: true, message: 'Student approved successfully.' });
+    res.json({ success: true, message: 'Student approved successfully!' });
   } catch (err) {
-    console.error('Approve student error:', err);
-    return res.status(500).json({ success: false, message: 'Error approving student.' });
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
-// Reject pending student
+// Reject Student Registration
 router.post('/reject-student/:id', verifyToken, verifyAdmin, async (req, res) => {
   try {
     const userId = req.params.id;
-
     await db.execute({
-      sql: "DELETE FROM users WHERE id = ? AND status = 'pending'",
+      sql: "UPDATE users SET status = 'rejected' WHERE id = ?",
       args: [userId]
     });
-
-    return res.json({ success: true, message: 'Student registration rejected.' });
+    res.json({ success: true, message: 'Student registration rejected.' });
   } catch (err) {
-    console.error('Reject student error:', err);
-    return res.status(500).json({ success: false, message: 'Error rejecting student.' });
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Dashboard Stats Overview
+router.get('/dashboard-stats', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+
+    const result = await db.execute({
+      sql: `
+        SELECT 
+          (SELECT COUNT(*) FROM users WHERE status = 'pending' AND role != 'admin') as pending_users_count,
+          (SELECT COUNT(*) FROM meals WHERE date = ? AND morning = 1) as today_morning_eating,
+          (SELECT COUNT(*) FROM meals WHERE date = ? AND night = 1) as today_night_eating,
+          (SELECT COUNT(*) FROM payments WHERE status = 'pending') as pending_proofs_count
+      `,
+      args: [today, today]
+    });
+
+    res.json({ success: true, stats: result.rows[0] || {} });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Admin Toggle Meal for a Student on a Specific Date
+router.post('/toggle-meal', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const { userId, date, morning, night } = req.body;
+    if (!userId || !date) {
+      return res.status(400).json({ success: false, message: 'userId and date are required.' });
+    }
+
+    await db.execute({
+      sql: `INSERT INTO meals (user_id, date, morning, night)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(user_id, date) DO UPDATE SET morning = excluded.morning, night = excluded.night, updated_at = CURRENT_TIMESTAMP`,
+      args: [userId, date, morning ?? 1, night ?? 1]
+    });
+
+    res.json({ success: true, message: 'Meal status updated.' });
+  } catch (err) {
+    console.error('toggle-meal error:', err);
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 

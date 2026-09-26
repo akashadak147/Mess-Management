@@ -2,10 +2,13 @@ require('dotenv').config();
 const { createClient } = require('@libsql/client');
 const bcrypt = require('bcryptjs');
 
-// Initialize the Turso client using environment variables
+// Initialize the Turso client safely
+const url = process.env.TURSO_DATABASE_URL || 'file:mess_management.db';
+const authToken = process.env.TURSO_AUTH_TOKEN;
+
 const db = createClient({
-  url: process.env.TURSO_DATABASE_URL,
-  authToken: process.env.TURSO_AUTH_TOKEN,
+  url: url,
+  authToken: authToken,
 });
 
 /**
@@ -23,7 +26,9 @@ async function initSchema() {
         room_no TEXT,
         password_hash TEXT NOT NULL,
         role TEXT DEFAULT 'user' CHECK (role IN ('admin', 'user')),
-        status TEXT DEFAULT 'active',
+        status TEXT DEFAULT 'pending' CHECK (status IN ('active', 'pending', 'inactive', 'rejected')),
+        is_owner INTEGER DEFAULT 0,
+        permissions TEXT DEFAULT 'all',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
     `);

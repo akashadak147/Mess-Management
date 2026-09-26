@@ -55,7 +55,7 @@ function showToast(message, type = 'success') {
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
   const icon = type === 'success' ? '✅' : (type === 'error' ? '❌' : '⚠️');
-  toast.innerHTML = `<span>${icon}</span><div>${message}</div>`;
+  toast.innerHTML = `<span>${icon}</span><div>${escapeHtml(message)}</div>`;
   container.appendChild(toast);
 
   setTimeout(() => {
@@ -75,8 +75,8 @@ function showToastWithAction(message, type = 'warning', actionLabel = 'Review', 
   toast.innerHTML = `
     <span>${icon}</span>
     <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.65rem; width: 100%;">
-      <span>${message}</span>
-      ${actionLabel ? `<button type="button" class="toast-action-btn">${actionLabel}</button>` : ''}
+      <span>${escapeHtml(message)}</span>
+      ${actionLabel ? `<button type="button" class="toast-action-btn">${escapeHtml(actionLabel)}</button>` : ''}
     </div>
   `;
   if (actionLabel && onAction) {
@@ -149,14 +149,16 @@ function initTheme() {
   const savedTheme = localStorage.getItem('mess_theme') || 'dark';
   if (savedTheme === 'light') {
     document.body.classList.add('light-theme');
-    document.getElementById('theme-icon').textContent = '☀️';
+    const icon = document.getElementById('theme-icon');
+    if (icon) icon.textContent = '☀️';
   }
 
-  document.getElementById('theme-toggle-btn').addEventListener('click', () => {
+  document.getElementById('theme-toggle-btn')?.addEventListener('click', () => {
     document.body.classList.toggle('light-theme');
     const isLight = document.body.classList.contains('light-theme');
     localStorage.setItem('mess_theme', isLight ? 'light' : 'dark');
-    document.getElementById('theme-icon').textContent = isLight ? '☀️' : '🌙';
+    const icon = document.getElementById('theme-icon');
+    if (icon) icon.textContent = isLight ? '☀️' : '🌙';
   });
 }
 
@@ -779,7 +781,7 @@ function setupAuthEvents() {
     tabLogin?.click();
   });
 
-  loginForm.addEventListener('submit', async (e) => {
+  loginForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
     hideLoginError();
 
@@ -796,8 +798,10 @@ function setupAuthEvents() {
     }
 
     try {
-      btn.disabled = true;
-      btn.textContent = 'Verifying...';
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Verifying...';
+      }
 
       const res = await apiRequest('/api/auth/login', {
         method: 'POST',
@@ -831,19 +835,21 @@ function setupAuthEvents() {
       showLoginError(errorMsg, 'Authentication Error', false);
       showToast(errorMsg, 'error');
     } finally {
-      btn.disabled = false;
-      btn.textContent = isAdminActive ? 'Sign In as Mess Manager' : 'Sign In as Student';
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = isAdminActive ? 'Sign In as Mess Manager' : 'Sign In as Student';
+      }
     }
   });
 
-  regForm.addEventListener('submit', async (e) => {
+  regForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const name = document.getElementById('reg-name').value.trim();
-    const email = document.getElementById('reg-email').value.trim();
-    const room_no = document.getElementById('reg-room').value.trim();
-    const rawPhone = document.getElementById('reg-phone').value.trim();
+    const name = document.getElementById('reg-name')?.value?.trim() || '';
+    const email = document.getElementById('reg-email')?.value?.trim() || '';
+    const room_no = document.getElementById('reg-room')?.value?.trim() || '';
+    const rawPhone = document.getElementById('reg-phone')?.value?.trim() || '';
     const phone = rawPhone.replace(/\D/g, '').slice(-10);
-    const password = document.getElementById('reg-password').value;
+    const password = document.getElementById('reg-password')?.value || '';
     const cleanPassword = password.trim();
     const btn = document.getElementById('register-submit-btn');
 
@@ -858,8 +864,10 @@ function setupAuthEvents() {
     }
 
     try {
-      btn.disabled = true;
-      btn.textContent = 'Submitting Registration...';
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Submitting Registration...';
+      }
 
       const res = await apiRequest('/api/auth/register', {
         method: 'POST',
@@ -885,7 +893,7 @@ function setupAuthEvents() {
         }
 
         regForm.reset();
-        tabLogin.click();
+        tabLogin?.click();
         const emailInput = document.getElementById('login-email');
         const passwordInput = document.getElementById('login-password');
         if (emailInput) emailInput.value = email;
@@ -899,8 +907,10 @@ function setupAuthEvents() {
     } catch (err) {
       showToast('Registration failed. Please check your information.', 'error');
     } finally {
-      btn.disabled = false;
-      btn.textContent = 'Register as Student';
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Register as Student';
+      }
     }
   });
 }
@@ -911,22 +921,28 @@ function onLoginSuccess(user, announce = true) {
   const unauthBtns = document.getElementById('unauth-nav-btns');
   if (unauthBtns) unauthBtns.style.display = 'none';
 
-  document.getElementById('nav-user-name').textContent = user.name;
-  document.getElementById('nav-user-avatar').textContent = user.name.charAt(0).toUpperCase();
+  const nameEl = document.getElementById('nav-user-name');
+  const avatarEl = document.getElementById('nav-user-avatar');
+  if (nameEl) nameEl.textContent = user.name;
+  if (avatarEl) avatarEl.textContent = user.name.charAt(0).toUpperCase();
 
   const roleTag = document.getElementById('nav-user-role');
-  const avatar = document.getElementById('nav-user-avatar');
+  const modeBadge = document.getElementById('portal-mode-badge');
 
   if (user.role === 'admin') {
-    roleTag.textContent = 'Mess Manager';
-    roleTag.className = 'user-role-tag admin-tag';
-    avatar.className = 'user-avatar admin-avatar';
-    document.getElementById('portal-mode-badge').textContent = 'Manager Mode';
+    if (roleTag) {
+      roleTag.textContent = 'Mess Manager';
+      roleTag.className = 'user-role-tag admin-tag';
+    }
+    if (avatarEl) avatarEl.className = 'user-avatar admin-avatar';
+    if (modeBadge) modeBadge.textContent = 'Manager Mode';
   } else {
-    roleTag.textContent = user.room_no ? user.room_no : 'Student';
-    roleTag.className = 'user-role-tag';
-    avatar.className = 'user-avatar';
-    document.getElementById('portal-mode-badge').textContent = 'Student Portal';
+    if (roleTag) {
+      roleTag.textContent = user.room_no ? user.room_no : 'Student';
+      roleTag.className = 'user-role-tag';
+    }
+    if (avatarEl) avatarEl.className = 'user-avatar';
+    if (modeBadge) modeBadge.textContent = 'Student Portal';
   }
 
   renderNavLinks();
@@ -950,15 +966,22 @@ function logout() {
   state.user = null;
   localStorage.removeItem('mess_token');
   localStorage.removeItem('mess_user');
-  document.getElementById('user-profile-pill').style.display = 'none';
+
+  const pill = document.getElementById('user-profile-pill');
+  if (pill) pill.style.display = 'none';
+
   const unauthBtns = document.getElementById('unauth-nav-btns');
   if (unauthBtns) unauthBtns.style.display = 'flex';
 
   const cornerWidget = document.getElementById('corner-headcount-widget');
   if (cornerWidget) cornerWidget.style.display = 'none';
 
-  document.getElementById('main-nav-links').innerHTML = '';
-  document.getElementById('portal-mode-badge').textContent = 'Live System';
+  const mainNav = document.getElementById('main-nav-links');
+  if (mainNav) mainNav.innerHTML = '';
+
+  const modeBadge = document.getElementById('portal-mode-badge');
+  if (modeBadge) modeBadge.textContent = 'Live System';
+
   switchView('auth');
   showToast('Logged out successfully', 'success');
 }
@@ -1027,12 +1050,12 @@ async function loadUserDashboard() {
     loadGlobalCornerHeadcount();
 
     const mealRes = await apiRequest(`/api/meals/my?month=${state.currentMonth}`);
-    if (mealRes.success) {
+    if (mealRes && mealRes.success) {
       renderUserMeals(mealRes);
     }
 
     const billRes = await apiRequest(`/api/billing/my?month=${state.currentMonth}`);
-    if (billRes.success) {
+    if (billRes && billRes.success) {
       renderUserBilling(billRes);
     }
 
@@ -1091,7 +1114,7 @@ async function saveMealAttendance(date, morning, night) {
       method: 'POST',
       body: JSON.stringify({ date, morning, night })
     });
-    if (res.success) {
+    if (res && res.success) {
       showToast(`Saved preference for ${date}: Breakfast ${morning ? 'EATING' : 'NOT EATING'}, Dinner ${night ? 'EATING' : 'NOT EATING'}`);
       loadUserDashboard();
       loadGlobalCornerHeadcount();
@@ -1113,7 +1136,8 @@ function renderUserBilling(billData) {
   const paidAmount = bill.paid_amount || 0;
   const dueBalance = Math.max(0, totalPayable - paidAmount);
 
-  document.getElementById('user-stat-total-due').textContent = formatCurrency(dueBalance);
+  const dueEl = document.getElementById('user-stat-total-due');
+  if (dueEl) dueEl.textContent = formatCurrency(dueBalance);
 }
 
 async function loadUserPaymentHistory() {
@@ -1123,7 +1147,7 @@ async function loadUserPaymentHistory() {
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    if (!res.success || !res.payments || res.payments.length === 0) {
+    if (!res || !res.success || !res.payments || res.payments.length === 0) {
       tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">No payment submissions recorded yet.</td></tr>`;
       return;
     }
@@ -1132,12 +1156,12 @@ async function loadUserPaymentHistory() {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${formatDate(p.payment_date || p.created_at)}</td>
-        <td><strong>${p.month}</strong></td>
+        <td><strong>${escapeHtml(p.month)}</strong></td>
         <td style="color: var(--primary); font-weight: 700;">${formatCurrency(p.amount)}</td>
-        <td><code>${p.utr_number}</code></td>
-        <td><a href="${p.screenshot_path}" target="_blank" class="btn btn-outline btn-sm">View Proof</a></td>
-        <td><span class="status-pill status-${p.status.toLowerCase()}">${p.status}</span></td>
-        <td>${p.admin_note || '-'}</td>
+        <td><code>${escapeHtml(p.utr_number)}</code></td>
+        <td><a href="${escapeHtml(p.screenshot_path)}" target="_blank" class="btn btn-outline btn-sm">View Proof</a></td>
+        <td><span class="status-pill status-${escapeHtml(p.status).toLowerCase()}">${escapeHtml(p.status)}</span></td>
+        <td>${escapeHtml(p.admin_note || '-')}</td>
       `;
       tbody.appendChild(tr);
     });
@@ -1151,7 +1175,7 @@ async function loadAdminDashboard() {
     loadGlobalCornerHeadcount();
 
     const statsRes = await apiRequest('/api/admin/dashboard-stats');
-    if (statsRes.success) {
+    if (statsRes && statsRes.success) {
       renderAdminStats(statsRes.stats);
     }
 
@@ -1178,7 +1202,7 @@ async function loadAdminDateHeadcount(dateStr) {
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    if (!res.success || !res.members || res.members.length === 0) {
+    if (!res || !res.success || !res.members || res.members.length === 0) {
       tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No members registered yet.</td></tr>`;
       return;
     }
@@ -1186,8 +1210,8 @@ async function loadAdminDateHeadcount(dateStr) {
     res.members.forEach(m => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td><strong>${m.room_no || 'N/A'}</strong></td>
-        <td>${m.name}</td>
+        <td><strong>${escapeHtml(m.room_no || 'N/A')}</strong></td>
+        <td>${escapeHtml(m.name)}</td>
         <td>${m.morning === 1 ? '☀️ Eating' : '❌ Skipping'}</td>
         <td>${m.night === 1 ? '🌙 Eating' : '❌ Skipping'}</td>
         <td>
@@ -1201,6 +1225,78 @@ async function loadAdminDateHeadcount(dateStr) {
   } catch (err) {}
 }
 
+window.adminToggleMeal = async function(userId, date, morning, night) {
+  try {
+    const res = await apiRequest('/api/admin/toggle-meal', {
+      method: 'POST',
+      body: JSON.stringify({ userId, date, morning, night })
+    });
+    if (res && res.success) {
+      showToast('Meal status updated', 'success');
+      loadAdminDateHeadcount(date);
+      loadGlobalCornerHeadcount();
+    }
+  } catch (err) {
+    showToast('Failed to toggle meal status', 'error');
+  }
+};
+
+window.approveStudent = async function(userId, encodedName) {
+  const name = decodeURIComponent(encodedName);
+  if (!confirm(`Approve student registration for "${name}"?\n\nThey will immediately be allowed to sign in with their email and password.`)) {
+    return;
+  }
+
+  try {
+    const res = await apiRequest(`/api/admin/approve-student/${userId}`, {
+      method: 'POST'
+    });
+    if (res && res.success) {
+      showToast(res.message || 'Student approved successfully!', 'success');
+      loadAdminPendingUsers();
+      loadAdminUsersDirectory();
+      loadAdminDashboard();
+    } else {
+      showToast(res?.message || 'Failed to approve student', 'error');
+    }
+  } catch (err) {
+    showToast('Failed to approve student', 'error');
+  }
+};
+
+window.rejectStudent = async function(userId, encodedName) {
+  const name = decodeURIComponent(encodedName);
+  if (!confirm(`Reject registration for "${name}"?\n\nThis account will not be allowed to sign in.`)) {
+    return;
+  }
+
+  try {
+    const res = await apiRequest(`/api/admin/reject-student/${userId}`, {
+      method: 'POST'
+    });
+    if (res && res.success) {
+      showToast(res.message || 'Student rejected', 'warning');
+      loadAdminPendingUsers();
+      loadAdminUsersDirectory();
+      loadAdminDashboard();
+    } else {
+      showToast(res?.message || 'Failed to reject student', 'error');
+    }
+  } catch (err) {
+    showToast('Failed to reject student', 'error');
+  }
+};
+
+window.switchAdminTab = function(tabName) {
+  const tabs = ['pending', 'directory', 'proofs', 'masi', 'resets'];
+  tabs.forEach(t => {
+    const pane = document.getElementById(`admin-tab-content-${t}`);
+    const btn = document.getElementById(`admin-tab-${t}-btn`);
+    if (pane) pane.style.display = (t === tabName) ? 'block' : 'none';
+    if (btn) btn.classList.toggle('active', t === tabName);
+  });
+};
+
 // ADMIN PENDING STUDENT REGISTRATIONS QUEUE
 async function loadAdminPendingUsers() {
   try {
@@ -1212,9 +1308,9 @@ async function loadAdminPendingUsers() {
     const badge = document.getElementById('admin-pending-badge');
     const stat = document.getElementById('admin-stat-pending-users');
 
-    const pendingList = res.students || res.users || [];
+    const pendingList = res ? (res.students || res.users || []) : [];
 
-    if (!res.success || pendingList.length === 0) {
+    if (!res || !res.success || pendingList.length === 0) {
       tbody.innerHTML = `
         <tr>
           <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">
@@ -1259,56 +1355,26 @@ async function loadAdminPendingUsers() {
   }
 }
 
-window.approveStudent = async function(userId, encodedName) {
-  const name = decodeURIComponent(encodedName);
-  if (!confirm(`Approve student registration for "${name}"?\n\nThey will immediately be allowed to sign in with their email and password.`)) {
-    return;
-  }
-
-  try {
-    const res = await apiRequest(`/api/admin/approve-student/${userId}`, {
-      method: 'POST'
-    });
-    if (res.success) {
-      showToast(res.message, 'success');
-      loadAdminPendingUsers();
-      loadAdminUsersDirectory();
-      loadAdminDashboard();
-    } else {
-      showToast(res.message || 'Failed to approve student', 'error');
-    }
-  } catch (err) {
-    showToast('Failed to approve student', 'error');
-  }
-};
-
-window.rejectStudent = async function(userId, encodedName) {
-  const name = decodeURIComponent(encodedName);
-  if (!confirm(`Reject registration for "${name}"?\n\nThis account will not be allowed to sign in.`)) {
-    return;
-  }
-
-  try {
-    const res = await apiRequest(`/api/admin/reject-student/${userId}`, {
-      method: 'POST'
-    });
-    if (res.success) {
-      showToast(res.message, 'warning');
-      loadAdminPendingUsers();
-      loadAdminUsersDirectory();
-      loadAdminDashboard();
-    } else {
-      showToast(res.message || 'Failed to reject student', 'error');
-    }
-  } catch (err) {
-    showToast('Failed to reject student', 'error');
-  }
-};
-
+// Placeholder functions for extended features
 async function loadAdminPendingProofs() {}
 async function loadAdminMasiFund() {}
 async function loadAdminUsersDirectory() {}
 async function loadTransparencyBoard() {}
+async function loadPasswordResetRequests() {}
+async function loadWeeklyMenu() {}
+function setupRoutineEvents() {}
+function setupPaymentEvents() {}
+function setupAdminEvents() {
+  const tabs = ['pending', 'directory', 'proofs', 'masi', 'resets'];
+  tabs.forEach(t => {
+    const btn = document.getElementById(`admin-tab-${t}-btn`);
+    if (btn) {
+      btn.addEventListener('click', () => window.switchAdminTab(t));
+    }
+  });
+}
+function setupModalEvents() {}
+function setupSavingsCalculator() {}
 
 // MARKET DUTY WIDGET WITH UNBLOCKED ERROR HANDLING
 async function loadTodayMarketDutyWidget(viewType = 'user') {
@@ -1328,7 +1394,7 @@ async function loadTodayMarketDutyWidget(viewType = 'user') {
     if (dayNameEl) dayNameEl.textContent = `Today: ${dayName}${bengaliDay}`;
     if (dutyTeamEl) {
       dutyTeamEl.innerHTML = todayData.market_duty 
-        ? `<span style="color: #34d399; font-weight: 700;">🛒 ${todayData.market_duty}</span>`
+        ? `<span style="color: #34d399; font-weight: 700;">🛒 ${escapeHtml(todayData.market_duty)}</span>`
         : 'No squad assigned';
     }
     if (morningDishEl) morningDishEl.textContent = todayData.morning_menu || 'Not scheduled';
@@ -1341,10 +1407,3 @@ async function loadTodayMarketDutyWidget(viewType = 'user') {
     }
   }
 }
-
-async function loadWeeklyMenu() {}
-function setupRoutineEvents() {}
-function setupPaymentEvents() {}
-function setupAdminEvents() {}
-function setupModalEvents() {}
-function setupSavingsCalculator() {}

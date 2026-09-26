@@ -3,6 +3,35 @@ const router = express.Router();
 const { db, recalculateAllBills } = require('../database');
 const { verifyToken, verifyAdmin } = require('../middleware/auth');
 
+// GET /api/billing/my?month=YYYY-MM  (frontend uses this)
+router.get('/my', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const month  = req.query.month || new Date().toISOString().slice(0, 7);
+
+    await recalculateAllBills(month);
+
+    const billResult = await db.execute({
+      sql: 'SELECT * FROM billing WHERE user_id = ? AND month = ?',
+      args: [userId, month]
+    });
+
+    const settingsResult = await db.execute({
+      sql: 'SELECT * FROM mess_settings WHERE id = 1',
+      args: []
+    });
+
+    return res.json({
+      success: true,
+      current_bill: billResult.rows[0] || {},
+      settings: settingsResult.rows[0] || {}
+    });
+  } catch (err) {
+    console.error('billing/my error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // 1. Get current student's billing history
 router.get('/my-bills', verifyToken, async (req, res) => {
   try {

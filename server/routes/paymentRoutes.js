@@ -141,6 +141,21 @@ router.get('/my-payments', verifyToken, async (req, res) => {
   }
 });
 
+// Get student's own payment history (alias: /my)
+router.get('/my', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const paymentsRes = await db.execute({
+      sql: 'SELECT * FROM payments WHERE user_id = ? ORDER BY id DESC',
+      args: [userId]
+    });
+    return res.json({ success: true, payments: paymentsRes.rows });
+  } catch (err) {
+    console.error('Get my payments error:', err);
+    return res.status(500).json({ success: false, message: 'Error retrieving payment history.' });
+  }
+});
+
 // =========================================================================
 // 2. ADMIN PAYMENT VERIFICATION & APPROVAL ROUTES
 // =========================================================================
