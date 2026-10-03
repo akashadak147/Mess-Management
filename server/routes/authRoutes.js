@@ -3,7 +3,8 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { db } = require('../database');
-const { eventBus } = require('../events');
+// events.js exports the eventBus instance directly — do NOT destructure
+const eventBus = require('../events');
 
 // POST /api/auth/login
 router.post('/login', async (req, res) => {

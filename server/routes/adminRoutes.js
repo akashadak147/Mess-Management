@@ -55,7 +55,8 @@ router.get('/dashboard-stats', verifyToken, verifyAdmin, async (req, res) => {
           (SELECT COUNT(*) FROM users WHERE status = 'pending' AND role != 'admin') as pending_users_count,
           (SELECT COUNT(*) FROM meals WHERE date = ? AND morning = 1) as today_morning_eating,
           (SELECT COUNT(*) FROM meals WHERE date = ? AND night = 1) as today_night_eating,
-          (SELECT COUNT(*) FROM payments WHERE status = 'pending') as pending_proofs_count
+          (SELECT COUNT(*) FROM payments WHERE status = 'PENDING') as pending_proofs_count,
+          (SELECT COUNT(*) FROM password_reset_requests WHERE status = 'pending') as pending_resets_count
       `,
       args: [today, today]
     });
@@ -65,6 +66,7 @@ router.get('/dashboard-stats', verifyToken, verifyAdmin, async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 });
+
 
 // Admin Toggle Meal for a Student on a Specific Date
 router.post('/toggle-meal', verifyToken, verifyAdmin, async (req, res) => {
